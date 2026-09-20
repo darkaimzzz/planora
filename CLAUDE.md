@@ -236,3 +236,20 @@ PRD §10. Two real users complete the whole flow end to end. Polish is explicitl
   - Fixed while testing: the agreed time was only written at final
     confirmation, so between the two votes the UI showed "Time voted ✓" with no
     time anywhere. It is now written the moment the time poll closes.
+
+- **2026-09-20 — Local test server.** `npm run dev` (Metro on 8085),
+  `npm run dev:web`, `npm run seed`, `npm run reset`, `npm run check`,
+  `npm run deploy:function`.
+  - `scripts/env.mjs` reads `.env.local` with no dependency, so the secret key
+    is never hardcoded into a committed file.
+  - `seed` resets first, then builds two accounts and three plans — one at each
+    stage (collecting / time poll open / venue vote open) — using dates
+    relative to today so the fixture never goes stale.
+  - `reset` only deletes accounts on the `planora.test` domain, so a real
+    account can't be caught by it.
+  - `deploy:function` replaces the hand-rolled curl; it derives the project ref
+    from the Supabase URL and ships `lib/availability.ts` alongside the
+    function, keeping one source of truth for the tie-break.
+  - Port is pinned to 8085 everywhere. Expo in non-interactive mode gives up
+    rather than offering another port, which is what "the server won't start"
+    looked like earlier.

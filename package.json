@@ -3,10 +3,17 @@
   "version": "0.1.0",
   "main": "expo-router/entry",
   "scripts": {
-    "start": "expo start",
-    "android": "expo start --android",
-    "ios": "expo start --ios",
-    "test": "tsx tests/run.ts"
+    "dev": "expo start --port 8085",
+    "dev:web": "expo start --web --port 8085",
+    "dev:clear": "expo start --port 8085 --clear",
+    "android": "expo start --android --port 8085",
+    "ios": "expo start --ios --port 8085",
+    "seed": "node scripts/seed.mjs",
+    "reset": "node scripts/reset.mjs",
+    "test": "tsx tests/run.ts",
+    "typecheck": "tsc --noEmit",
+    "check": "npm run typecheck && npm test",
+    "deploy:function": "node scripts/deploy-function.mjs"
   },
   "dependencies": {
     "@expo/vector-icons": "^15.0.2",
