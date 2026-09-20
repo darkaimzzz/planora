@@ -7,3 +7,4 @@ dist/
 .expo-export/
 .playwright-mcp/
 *.png.tmp
+.tamagui/
