@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { ScrollView, Share } from 'react-native';
 import * as Linking from 'expo-linking';
-import { useLocalSearchParams } from 'expo-router';
+import { useGlobalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Input, Text, View } from 'tamagui';
 import { useAuth } from '@/lib/auth';
@@ -9,15 +9,15 @@ import { addAttendee, searchProfiles, updatePlanDetails } from '@/lib/planQuerie
 import { PLAN_TYPES, type PlanType } from '@/lib/plans';
 import { usePlanData } from '@/lib/usePlanData';
 import { brand } from '@/lib/theme';
-import { Avatar, Card, Chip, FadeIn, PushButton, Heading, Loader, Muted, Screen, Tappable, Title } from '@/components/ui';
+import { Avatar, Card, Chip, ErrorState, FadeIn, PushButton, Heading, Loader, Muted, Screen, Tappable, Title } from '@/components/ui';
 import { VenueSection } from '@/components/VenueSection';
 
 type Found = { id: string; display_name: string; avatar_color: string };
 
 export default function Details() {
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const { id } = useGlobalSearchParams<{ id: string }>();
   const { session } = useAuth();
-  const { plan, attendees, loading, reload } = usePlanData(id);
+  const { plan, attendees, loading, error, reload } = usePlanData(id);
 
   const [editing, setEditing] = useState(false);
   const [title, setTitle] = useState('');
@@ -26,7 +26,8 @@ export default function Details() {
   const [results, setResults] = useState<Found[]>([]);
 
 
-  if (loading || !plan) return <Loader />;
+  if (loading) return <Loader />;
+  if (error || !plan) return <ErrorState message={error ?? 'This plan could not be found.'} onRetry={reload} />;
 
   const isCreator = plan.created_by === session?.user.id;
   const inviteUrl = Linking.createURL(`/join/${plan.invite_token}`);

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { PanResponder, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useGlobalSearchParams, useRouter } from 'expo-router';
 import { useAuth } from '@/lib/auth';
 import { supabase } from '@/lib/supabase';
 import { advancePlan } from '@/lib/advance';
@@ -13,7 +13,7 @@ const COL_W = 46;
 const LABEL_W = 46;
 
 export default function Availability() {
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const { id } = useGlobalSearchParams<{ id: string }>();
   const { session } = useAuth();
   const router = useRouter();
 
@@ -27,6 +27,10 @@ export default function Availability() {
   const selectedRef = useRef(selected);
   selectedRef.current = selected;
   const paintingRef = useRef(true);
+  // Where the current drag began, and the selection as it was at that moment —
+  // together they let every move recompute the result from scratch.
+  const anchorRef = useRef<{ col: number; row: number } | null>(null);
+  const baseRef = useRef<Set<Cell>>(new Set());
   const gridRef = useRef<View>(null);
   const gridOrigin = useRef({ x: 0, y: 0 });
 
@@ -54,22 +58,39 @@ export default function Availability() {
       });
   }, [id, session]);
 
-  function cellAt(pageX: number, pageY: number): Cell | null {
+  /** Grid coordinates of a touch, or null if it's outside the cells. */
+  function cellPos(pageX: number, pageY: number): { col: number; row: number } | null {
     const col = Math.floor((pageX - gridOrigin.current.x - LABEL_W) / COL_W);
     const row = Math.floor((pageY - gridOrigin.current.y) / CELL_H);
     if (col < 0 || col >= days.length || row < 0 || row >= HOURS.length) return null;
-    return cellKey(days[col], HOURS[row]);
+    return { col, row };
   }
 
-  function applyCell(cell: Cell) {
-    setSelected((prev) => {
-      const has = prev.has(cell);
-      if (paintingRef.current === has) return prev; // nothing to change
-      const next = new Set(prev);
-      if (paintingRef.current) next.add(cell);
-      else next.delete(cell);
-      return next;
-    });
+  /**
+   * Paint the rectangle between where the drag started and where it is now.
+   *
+   * Deliberately a rectangle rather than "whichever cell the pointer is over":
+   * move events are sparse, so a quick drag skips cells entirely. Recomputing
+   * from the anchor against a snapshot of the selection makes each move
+   * idempotent, so the result depends on where the finger is — not on how many
+   * events happened to fire on the way.
+   */
+  function paintTo(pos: { col: number; row: number }) {
+    const anchor = anchorRef.current;
+    if (!anchor) return;
+
+    const next = new Set(baseRef.current);
+    const [c0, c1] = [Math.min(anchor.col, pos.col), Math.max(anchor.col, pos.col)];
+    const [r0, r1] = [Math.min(anchor.row, pos.row), Math.max(anchor.row, pos.row)];
+
+    for (let col = c0; col <= c1; col++) {
+      for (let row = r0; row <= r1; row++) {
+        const cell = cellKey(days[col], HOURS[row]);
+        if (paintingRef.current) next.add(cell);
+        else next.delete(cell);
+      }
+    }
+    setSelected(next);
   }
 
   const pan = useRef(
@@ -78,16 +99,22 @@ export default function Availability() {
       onMoveShouldSetPanResponder: () => true,
       onPanResponderGrant: (e) => {
         remeasure();
-        const cell = cellAt(e.nativeEvent.pageX, e.nativeEvent.pageY);
-        if (!cell) return;
+        const pos = cellPos(e.nativeEvent.pageX, e.nativeEvent.pageY);
+        if (!pos) return;
         // The first cell decides whether this drag paints or erases, so
         // dragging back over your own selection clears it.
+        const cell = cellKey(days[pos.col], HOURS[pos.row]);
         paintingRef.current = !selectedRef.current.has(cell);
-        applyCell(cell);
+        anchorRef.current = pos;
+        baseRef.current = new Set(selectedRef.current);
+        paintTo(pos);
       },
       onPanResponderMove: (e) => {
-        const cell = cellAt(e.nativeEvent.pageX, e.nativeEvent.pageY);
-        if (cell) applyCell(cell);
+        const pos = cellPos(e.nativeEvent.pageX, e.nativeEvent.pageY);
+        if (pos) paintTo(pos);
+      },
+      onPanResponderRelease: () => {
+        anchorRef.current = null;
       },
     }),
   ).current;

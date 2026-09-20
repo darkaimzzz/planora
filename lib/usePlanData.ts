@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { supabase } from './supabase';
 import { fetchAttendees, fetchPlan, type Attendee } from './planQueries';
 import type { Plan } from './plans';
@@ -11,6 +11,8 @@ export type PlanData = {
   attendees: Attendee[];
   roadmap: RoadmapInput;
   loading: boolean;
+  /** Set when the last load failed, so screens can offer a retry. */
+  error: string | null;
   reload: () => Promise<void>;
 };
 
@@ -26,9 +28,22 @@ export function usePlanData(planId: string | undefined): PlanData {
   const [timePoll, setTimePoll] = useState<PollSummary | null>(null);
   const [venuePoll, setVenuePoll] = useState<PollSummary | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  // Roadmap, Voting and Details each run this hook. A shared channel name means
+  // one screen unmounting removes the channel another just subscribed to, which
+  // leaves the new screen waiting on updates that never arrive.
+  const channelId = useRef(Math.random().toString(36).slice(2)).current;
 
   const reload = useCallback(async () => {
-    if (!planId) return;
+    // No id yet: nothing to fetch, but the screen must not sit on a spinner.
+    if (!planId) {
+      setLoading(false);
+      return;
+    }
+    // Anything in here can throw (a dropped connection, an expired token).
+    // Without the finally, one failure leaves the screen spinning forever with
+    // nothing to click.
+    try {
 
     const [planRow, attendeeRows, availabilityRows, pollRows] = await Promise.all([
       fetchPlan(planId),
@@ -51,9 +66,15 @@ export function usePlanData(planId: string | undefined): PlanData {
         .eq('poll_id', row.id);
       return { id: row.id, status: row.status, voteCount: count ?? 0 };
     };
-    setTimePoll(await summarise('time'));
-    setVenuePoll(await summarise('venue'));
-    setLoading(false);
+      setTimePoll(await summarise('time'));
+      setVenuePoll(await summarise('venue'));
+      setError(null);
+    } catch (err) {
+      console.warn('could not load the plan', err);
+      setError((err as Error).message ?? 'Could not load this plan.');
+    } finally {
+      setLoading(false);
+    }
   }, [planId]);
 
   useEffect(() => {
@@ -61,7 +82,7 @@ export function usePlanData(planId: string | undefined): PlanData {
     if (!planId) return;
 
     const channel = supabase
-      .channel(`plan-${planId}`)
+      .channel(`plan-${planId}-${channelId}`)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'polls', filter: `plan_id=eq.${planId}` }, reload)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'votes' }, reload)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'plan_attendees', filter: `plan_id=eq.${planId}` }, reload)
@@ -70,12 +91,13 @@ export function usePlanData(planId: string | undefined): PlanData {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [planId, reload]);
+  }, [planId, reload, channelId]);
 
   return {
     plan,
     attendees,
     loading,
+    error,
     reload,
     roadmap: {
       attendeeCount: attendees.length,

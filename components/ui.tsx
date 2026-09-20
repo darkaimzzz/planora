@@ -299,6 +299,24 @@ export function EmptyState({
   );
 }
 
+/** Shown when a load fails, so a hiccup is recoverable instead of a dead screen. */
+export function ErrorState({ message, onRetry }: { message: string; onRetry: () => void }) {
+  return (
+    <Screen alignItems="center" justifyContent="center" padding={24} gap={12}>
+      <EmptyState
+        emoji="😵‍💫"
+        title="That didn't load"
+        body={message}
+        action={
+          <View marginTop={8}>
+            <PushButton label="Try again" full={false} onPress={onRetry} />
+          </View>
+        }
+      />
+    </Screen>
+  );
+}
+
 export function Loader() {
   return (
     <Screen alignItems="center" justifyContent="center">

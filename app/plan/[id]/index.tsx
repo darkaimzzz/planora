@@ -1,5 +1,5 @@
 import { ScrollView } from 'react-native';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useGlobalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { MotiView } from 'moti';
 import { Text, View } from 'tamagui';
@@ -7,14 +7,15 @@ import { formatSlot } from '@/lib/plans';
 import { deriveRoadmap } from '@/lib/roadmap';
 import { usePlanData } from '@/lib/usePlanData';
 import { brand } from '@/lib/theme';
-import { Badge, Card, FadeIn, Heading, Loader, Muted, ProgressBar, PushButton, Screen, Title } from '@/components/ui';
+import { Badge, Card, ErrorState, FadeIn, Heading, Loader, Muted, ProgressBar, PushButton, Screen, Title } from '@/components/ui';
 
 export default function Roadmap() {
-  const { id } = useLocalSearchParams<{ id: string }>();
-  const { plan, roadmap, loading } = usePlanData(id);
+  const { id } = useGlobalSearchParams<{ id: string }>();
+  const { plan, roadmap, loading, error, reload } = usePlanData(id);
   const router = useRouter();
 
   if (loading) return <Loader />;
+  if (error || !plan) return <ErrorState message={error ?? 'This plan could not be found.'} onRetry={reload} />;
 
   const steps = deriveRoadmap(roadmap);
   const doneCount = steps.filter((s) => s.state === 'done').length;

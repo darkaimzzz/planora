@@ -308,3 +308,29 @@ PRD §10. Two real users complete the whole flow end to end. Polish is explicitl
   share `TAB_BAR_HEIGHT` from the app-level layout, with room for the label.
   Measured in the browser rather than eyeballed: labels' bottom edge is 864px
   in an 896px viewport, comfortably inside the bar.
+
+- **2026-09-20 — Driven end to end through the Chrome extension.** Sign in →
+  create plan → drag the grid → save → time poll → vote → close all worked.
+  Bugs found and fixed:
+  1. **A quick drag skipped cells.** Pointer move events are sparse, so
+     dragging 6pm→9pm painted 6, 7 and 9 but not 8. The grid now paints the
+     rectangle between the drag's anchor and the current cell, recomputed from
+     a snapshot taken at grant — so the result depends on where the finger is,
+     not on how many events happened to fire. Verified: 4 contiguous hours.
+  2. **Any failed load left a screen spinning forever.** `usePlanData` only
+     cleared `loading` on the success path, and returned early without
+     clearing it when the plan id was missing. It now always clears in a
+     `finally`, records the error, and the screens show a retry instead of a
+     dead spinner.
+  3. **Per-plan screens could lose the plan id.** They read
+     `useLocalSearchParams`, which doesn't carry the parent `[id]` segment when
+     a nested tab is focused; now `useGlobalSearchParams`.
+  4. **Realtime channels collided.** Roadmap, Voting and Details each ran
+     `usePlanData`, all subscribing to `plan-<id>`, so one unmounting removed
+     the channel another had just created. Each instance now has its own.
+
+  **Known issue, not fixed:** on web, pressing a tab in the per-plan bar
+  often doesn't switch screens — nested `Tabs` inside a dynamic Stack route.
+  Direct URLs and the app-level tabs work. Worth replacing the inner navigator
+  with a segmented control on one screen, which is also closer to Apple's
+  pattern for a detail view. Native is likely unaffected but untested.
