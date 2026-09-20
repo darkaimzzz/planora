@@ -5,7 +5,7 @@ import { Input, Text, View } from 'tamagui';
 import { useAuth } from '@/lib/auth';
 import { supabase } from '@/lib/supabase';
 import { AVATAR_COLORS, brand } from '@/lib/theme';
-import { Avatar, Card, FadeIn, GradientButton, Heading, Muted, Screen, Tappable, Title } from '@/components/ui';
+import { Avatar, Card, FadeIn, PushButton, Heading, Muted, Screen, Tappable, Title } from '@/components/ui';
 
 export default function ProfileScreen() {
   const { profile, refreshProfile } = useAuth();
@@ -72,7 +72,7 @@ export default function ProfileScreen() {
             </Card>
           </FadeIn>
 
-          <GradientButton label={saved ? 'Saved' : 'Save changes'} onPress={save} disabled={!dirty} />
+          <PushButton label={saved ? 'Saved' : 'Save changes'} onPress={save} disabled={!dirty} />
 
           <Tappable onPress={() => supabase.auth.signOut()}>
             <View alignItems="center" paddingVertical={16}>

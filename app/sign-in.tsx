@@ -2,16 +2,25 @@ import { useState } from 'react';
 import { KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
 import * as Linking from 'expo-linking';
 import * as WebBrowser from 'expo-web-browser';
-import { LinearGradient } from 'expo-linear-gradient';
 import { MotiView } from 'moti';
 import { Input, Text, View } from 'tamagui';
 import { supabase } from '@/lib/supabase';
-import { brand } from '@/lib/theme';
-import { Body, FadeIn, GhostButton, GradientButton, Muted, Screen, Tappable } from '@/components/ui';
+import { brand, radius } from '@/lib/theme';
+import { Logo } from '@/components/Logo';
+import { FadeIn, LargeTitle, Muted, PushButton, Screen, Tappable } from '@/components/ui';
 
 WebBrowser.maybeCompleteAuthSession();
 
 type Mode = 'signin' | 'signup';
+
+const inputStyle = {
+  size: '$5',
+  borderRadius: radius.md,
+  borderWidth: 2,
+  backgroundColor: brand.surface,
+  borderColor: brand.border,
+  focusStyle: { borderColor: brand.primary },
+} as const;
 
 export default function SignIn() {
   const [mode, setMode] = useState<Mode>('signin');
@@ -91,40 +100,37 @@ export default function SignIn() {
 
   return (
     <Screen>
-      {/* A soft wash behind the top of the screen, so the form isn't floating
-          on flat white. */}
-      <LinearGradient
-        colors={['#ececfb', brand.bg]}
-        style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 360 }}
-      />
+      {/* Three soft blobs in the brand colours — the only decoration, kept
+          behind everything so the form stays the focus. */}
+      <Blob color={brand.primaryWash} size={320} top={-110} left={-90} />
+      <Blob color={brand.accentWash} size={220} top={40} right={-80} />
+      <Blob color={brand.successWash} size={260} bottom={-120} left={-60} />
+
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-        <ScrollView contentContainerStyle={{ flexGrow: 1, justifyContent: 'center', padding: 24 }} keyboardShouldPersistTaps="handled">
+        <ScrollView
+          contentContainerStyle={{ flexGrow: 1, justifyContent: 'center', padding: 24 }}
+          keyboardShouldPersistTaps="handled"
+        >
           <FadeIn>
-            <View alignItems="center" marginBottom={28} gap={6}>
+            <View alignItems="center" marginBottom={32} gap={10}>
               <MotiView
-                from={{ scale: 0.8, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                transition={{ type: 'spring', damping: 14 }}
+                from={{ scale: 0.6, rotate: '-12deg' }}
+                animate={{ scale: 1, rotate: '0deg' }}
+                transition={{ type: 'spring', damping: 11, stiffness: 120 }}
               >
-                <LogoMark />
+                <Logo size={76} />
               </MotiView>
-              <Text fontSize={34} fontWeight="800" color={brand.ink} letterSpacing={-1}>
-                Planora
-              </Text>
-              <Muted fontSize={15} textAlign="center">
+              <LargeTitle>Planora</LargeTitle>
+              <Muted fontSize={16} textAlign="center" maxWidth={280}>
                 Stop saying "we should hang out sometime".
               </Muted>
             </View>
           </FadeIn>
 
-          <FadeIn delay={80}>
+          <FadeIn delay={90}>
             <View gap={12}>
               <Input
-                size="$5"
-                borderRadius={14}
-                backgroundColor={brand.surface}
-                borderColor={brand.border}
-                focusStyle={{ borderColor: brand.primary }}
+                {...inputStyle}
                 placeholder="Email"
                 autoCapitalize="none"
                 autoComplete="email"
@@ -133,11 +139,7 @@ export default function SignIn() {
                 onChangeText={setEmail}
               />
               <Input
-                size="$5"
-                borderRadius={14}
-                backgroundColor={brand.surface}
-                borderColor={brand.border}
-                focusStyle={{ borderColor: brand.primary }}
+                {...inputStyle}
                 placeholder="Password"
                 autoCapitalize="none"
                 secureTextEntry
@@ -145,26 +147,40 @@ export default function SignIn() {
                 onChangeText={setPassword}
               />
 
-              {error && <Text color={brand.danger} fontSize={14}>{error}</Text>}
-              {notice && <Body>{notice}</Body>}
+              {error && (
+                <View backgroundColor="#FDECEA" borderRadius={radius.sm} padding={12}>
+                  <Text color={brand.dangerDeep} fontSize={14} fontWeight="600">
+                    {error}
+                  </Text>
+                </View>
+              )}
+              {notice && (
+                <View backgroundColor={brand.successWash} borderRadius={radius.sm} padding={12}>
+                  <Text color={brand.successDeep} fontSize={14} fontWeight="600">
+                    {notice}
+                  </Text>
+                </View>
+              )}
 
-              <GradientButton
-                label={mode === 'signup' ? 'Create account' : 'Sign in'}
-                onPress={submit}
-                busy={busy}
-              />
-
-              <View flexDirection="row" alignItems="center" gap={12} marginVertical={6}>
-                <View flex={1} height={1} backgroundColor={brand.border} />
-                <Muted>or</Muted>
-                <View flex={1} height={1} backgroundColor={brand.border} />
+              <View marginTop={4}>
+                <PushButton
+                  label={mode === 'signup' ? 'Create account' : 'Sign in'}
+                  onPress={submit}
+                  busy={busy}
+                />
               </View>
 
-              <GhostButton label="Continue with Google" onPress={signInWithGoogle} disabled={busy} />
+              <View flexDirection="row" alignItems="center" gap={12} marginVertical={6}>
+                <View flex={1} height={2} backgroundColor={brand.border} borderRadius={2} />
+                <Muted>OR</Muted>
+                <View flex={1} height={2} backgroundColor={brand.border} borderRadius={2} />
+              </View>
+
+              <PushButton label="Continue with Google" tone="neutral" onPress={signInWithGoogle} disabled={busy} />
 
               <Tappable onPress={() => setMode(mode === 'signup' ? 'signin' : 'signup')}>
-                <View alignItems="center" paddingVertical={14}>
-                  <Text color={brand.primary} fontSize={14} fontWeight="600">
+                <View alignItems="center" paddingVertical={16}>
+                  <Text color={brand.primary} fontSize={15} fontWeight="700">
                     {mode === 'signup' ? 'Already have an account? Sign in' : 'New here? Create an account'}
                   </Text>
                 </View>
@@ -177,24 +193,27 @@ export default function SignIn() {
   );
 }
 
-/** The logo's calendar-with-a-tick, drawn in views so there's no asset to ship. */
-function LogoMark() {
+function Blob({
+  color,
+  size,
+  ...pos
+}: {
+  color: any;
+  size: number;
+  top?: number;
+  left?: number;
+  right?: number;
+  bottom?: number;
+}) {
   return (
     <View
-      width={64}
-      height={64}
-      borderRadius={18}
-      borderWidth={3}
-      borderColor={brand.primary}
-      alignItems="center"
-      justifyContent="center"
-    >
-      <View position="absolute" top={-7} left={16} width={3} height={12} borderRadius={2} backgroundColor={brand.primary} />
-      <View position="absolute" top={-7} right={16} width={3} height={12} borderRadius={2} backgroundColor={brand.primary} />
-      <View position="absolute" top={13} left={0} right={0} height={3} backgroundColor={brand.primary} />
-      <Text color={brand.primary} fontSize={26} fontWeight="800" marginTop={12}>
-        ✓
-      </Text>
-    </View>
+      position="absolute"
+      width={size}
+      height={size}
+      borderRadius={size / 2}
+      backgroundColor={color}
+      opacity={0.75}
+      {...pos}
+    />
   );
 }

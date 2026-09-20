@@ -7,7 +7,7 @@ import { formatSlot } from '@/lib/plans';
 import { deriveRoadmap } from '@/lib/roadmap';
 import { usePlanData } from '@/lib/usePlanData';
 import { brand } from '@/lib/theme';
-import { Card, FadeIn, GradientButton, Loader, Muted, Screen, Title } from '@/components/ui';
+import { Badge, Card, FadeIn, Heading, Loader, Muted, ProgressBar, PushButton, Screen, Title } from '@/components/ui';
 
 export default function Roadmap() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -17,6 +17,7 @@ export default function Roadmap() {
   if (loading) return <Loader />;
 
   const steps = deriveRoadmap(roadmap);
+  const doneCount = steps.filter((s) => s.state === 'done').length;
 
   return (
     <Screen>
@@ -31,7 +32,20 @@ export default function Roadmap() {
           </View>
         </FadeIn>
 
-        <FadeIn delay={60}>
+        <FadeIn delay={40}>
+          <Card gap={12}>
+            <View flexDirection="row" alignItems="center" justifyContent="space-between">
+              <Heading>Progress</Heading>
+              <Badge
+                label={`${doneCount} of ${steps.length}`}
+                tone={doneCount === steps.length ? 'success' : 'accent'}
+              />
+            </View>
+            <ProgressBar value={doneCount / steps.length} />
+          </Card>
+        </FadeIn>
+
+        <FadeIn delay={80}>
           <Card paddingVertical={20}>
             {steps.map((step, i) => (
               <View key={step.stage} flexDirection="row" gap={14}>
@@ -46,8 +60,8 @@ export default function Roadmap() {
                       height={14}
                       borderRadius={7}
                       borderWidth={step.state === 'current' ? 4 : 2}
-                      borderColor={step.state === 'pending' ? brand.border : brand.primary}
-                      backgroundColor={step.state === 'done' ? brand.primary : brand.surface}
+                      borderColor={step.state === 'pending' ? brand.border : step.state === 'done' ? brand.success : brand.accent}
+                      backgroundColor={step.state === 'done' ? brand.success : brand.surface}
                     />
                   </MotiView>
                   {i < steps.length - 1 && (
@@ -55,7 +69,7 @@ export default function Roadmap() {
                       flex={1}
                       width={2}
                       minHeight={34}
-                      backgroundColor={step.state === 'done' ? brand.primary : brand.border}
+                      backgroundColor={step.state === 'done' ? brand.success : brand.border}
                     />
                   )}
                 </View>
@@ -79,10 +93,10 @@ export default function Roadmap() {
 
         {plan?.status === 'decided' ? (
           <FadeIn delay={120}>
-            <Card backgroundColor={brand.primarySoft} borderColor={brand.primary}>
+            <Card backgroundColor={brand.successWash} borderColor={brand.success}>
               <View flexDirection="row" alignItems="center" gap={8}>
-                <Ionicons name="checkmark-circle" size={20} color={brand.primary} />
-                <Text fontWeight="700" color={brand.primary}>It's happening</Text>
+                <Ionicons name="checkmark-circle" size={22} color={String(brand.success)} />
+                <Text fontWeight="800" fontSize={17} color={brand.successDeep}>It's happening 🎉</Text>
               </View>
               <Text fontSize={15} color={brand.ink}>
                 {plan.confirmed_start
@@ -93,7 +107,7 @@ export default function Roadmap() {
             </Card>
           </FadeIn>
         ) : (
-          <GradientButton
+          <PushButton
             label="Mark my availability"
             onPress={() => router.push(`/plan/${id}/availability`)}
           />

@@ -253,3 +253,26 @@ PRD §10. Two real users complete the whole flow end to end. Polish is explicitl
   - Port is pinned to 8085 everywhere. Expo in non-interactive mode gives up
     rather than offering another port, which is what "the server won't start"
     looked like earlier.
+
+- **2026-09-20 — Missing-profile bug, and a proper design system.**
+  - **Bug:** `xanderkamixd@gmail.com` signed up four minutes before the schema
+    was applied, so the signup trigger didn't exist and no `profiles` row was
+    created. `plans.created_by` references `profiles(id)`, so every plan insert
+    failed on the foreign key with an opaque error. `0004_backfill_profiles.sql`
+    backfills anyone in that state and adds `ensure_profile()`; the auth layer
+    now calls it whenever it finds a session with no profile, so no cause of a
+    missing row can strand a user again.
+  - **Design system.** Three base colours, each with a job, in `lib/theme.ts`:
+    indigo (brand, primary actions), grass (progress, anything settled),
+    sunbeam (attention, what's waiting on you). Each has a `deep` shade for
+    button edges and a `wash` for tinted panels. Nothing else introduces a hue.
+  - Apple side: `type` is the HIG scale, cards are inset-grouped with generous
+    radii, large titles, all-caps section labels, real safe areas.
+  - Duolingo side: `PushButton` is a slab on a darker edge that physically
+    drops when pressed — the single thing that makes the app feel tactile, so
+    every real action uses it. Plus `ProgressBar`, emoji `EmptyState`s, chunky
+    `Chip`s and `Badge`s, and spring entrances.
+  - Home leads with three stat tiles (one per colour); the roadmap has a
+    progress bar and colour-codes stages green/amber/grey.
+  - Verified: `npm run check` clean, and every rebuilt screen was loaded in the
+    browser against seeded data.

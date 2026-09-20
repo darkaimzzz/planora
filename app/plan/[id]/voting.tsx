@@ -8,7 +8,7 @@ import { useAuth } from '@/lib/auth';
 import { supabase } from '@/lib/supabase';
 import { advancePlan } from '@/lib/advance';
 import { brand } from '@/lib/theme';
-import { Card, FadeIn, GradientButton, Heading, Loader, Muted, Screen, Tappable } from '@/components/ui';
+import { Card, FadeIn, PushButton, Heading, Loader, Muted, Screen, Tappable } from '@/components/ui';
 
 type Poll = {
   id: string;
@@ -108,7 +108,7 @@ export default function Voting() {
             ? 'Mark when you’re free and the time poll opens once everyone has.'
             : 'Waiting for everyone else to mark their availability.'}
         </Muted>
-        <GradientButton
+        <PushButton
           full={false}
           label={myAvailability === 0 ? 'Mark availability' : 'Edit my availability'}
           onPress={() => router.push(`/plan/${id}/availability`)}
@@ -134,7 +134,7 @@ export default function Voting() {
                 <View flexDirection="row" alignItems="center" justifyContent="space-between" gap={8}>
                   <Heading flex={1}>{TITLES[poll.poll_type]}</Heading>
                   <View
-                    backgroundColor={poll.status === 'closed' ? brand.primarySoft : brand.sunken}
+                    backgroundColor={poll.status === 'closed' ? brand.primaryWash : brand.sunken}
                     paddingHorizontal={10}
                     paddingVertical={4}
                     borderRadius={999}
@@ -166,7 +166,7 @@ export default function Voting() {
                         borderColor={chosen || won ? brand.primary : brand.border}
                         borderRadius={14}
                         overflow="hidden"
-                        backgroundColor={won ? brand.primarySoft : brand.surface}
+                        backgroundColor={won ? brand.primaryWash : brand.surface}
                       >
                         {/* The bar grows into place rather than snapping. */}
                         <MotiView
@@ -177,7 +177,7 @@ export default function Voting() {
                             left: 0,
                             top: 0,
                             bottom: 0,
-                            backgroundColor: brand.primarySoft,
+                            backgroundColor: brand.primaryWash,
                           }}
                         />
                         <View flexDirection="row" justifyContent="space-between" padding={14}>

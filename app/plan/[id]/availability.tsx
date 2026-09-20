@@ -19,7 +19,7 @@ import {
   type Cell,
 } from '@/lib/availability';
 import { brand } from '@/lib/theme';
-import { GradientButton, Loader } from '@/components/ui';
+import { PushButton, Loader } from '@/components/ui';
 
 const CELL_H = 30;
 const COL_W = 46;
@@ -160,7 +160,7 @@ export default function Availability() {
       </ScrollView>
 
       <View style={{ padding: 16 }}>
-        <GradientButton label="Save availability" onPress={save} busy={saving} />
+        <PushButton label="Save availability" onPress={save} busy={saving} />
       </View>
     </View>
   );

@@ -9,7 +9,7 @@ import { addAttendee, searchProfiles, updatePlanDetails } from '@/lib/planQuerie
 import { PLAN_TYPES, type PlanType } from '@/lib/plans';
 import { usePlanData } from '@/lib/usePlanData';
 import { brand } from '@/lib/theme';
-import { Avatar, Card, Chip, FadeIn, GradientButton, Heading, Loader, Muted, Screen, Tappable, Title } from '@/components/ui';
+import { Avatar, Card, Chip, FadeIn, PushButton, Heading, Loader, Muted, Screen, Tappable, Title } from '@/components/ui';
 import { VenueSection } from '@/components/VenueSection';
 
 type Found = { id: string; display_name: string; avatar_color: string };
@@ -101,7 +101,7 @@ export default function Details() {
           <Card>
             <Heading>Invite link</Heading>
             <Muted numberOfLines={1}>{inviteUrl}</Muted>
-            <GradientButton
+            <PushButton
               label="Share invite"
               onPress={() =>
                 Share.share({ message: `Join my plan "${plan.title}" on Planora: ${inviteUrl}` })
@@ -155,7 +155,7 @@ export default function Details() {
                   {a.profiles?.display_name ?? 'Someone'}
                 </Text>
                 {a.user_id === plan.created_by && (
-                  <View backgroundColor={brand.primarySoft} paddingHorizontal={8} paddingVertical={3} borderRadius={999}>
+                  <View backgroundColor={brand.primaryWash} paddingHorizontal={8} paddingVertical={3} borderRadius={999}>
                     <Text fontSize={11} fontWeight="700" color={brand.primary}>organiser</Text>
                   </View>
                 )}

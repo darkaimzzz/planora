@@ -8,7 +8,7 @@ import { mapsUrl, placesEnabled, searchPlaces, type PlaceResult } from '@/lib/pl
 import type { Plan } from '@/lib/plans';
 import { supabase } from '@/lib/supabase';
 import { brand } from '@/lib/theme';
-import { Card, GhostButton, GradientButton, Heading, Muted, Tappable } from '@/components/ui';
+import { Card, NeutralButton, PushButton, Heading, Muted, Tappable } from '@/components/ui';
 
 /**
  * The venue half of a plan. The creator proposes two or three places and the
@@ -135,7 +135,7 @@ export function VenueSection({
         isCreator ? (
           <View gap={10}>
             <Muted>Propose two or three places and let everyone vote.</Muted>
-            <GradientButton label="Propose places" onPress={() => setPicking(true)} />
+            <PushButton label="Propose places" onPress={() => setPicking(true)} />
           </View>
         ) : (
           <Muted>The organiser hasn't proposed anywhere yet.</Muted>
@@ -212,7 +212,7 @@ export function VenueSection({
           {/* Without a Places key, or when nothing matched, the typed text is
               still a perfectly good option. */}
           {query.trim().length > 0 && results.length === 0 && shortlist.length < 3 && (
-            <GhostButton
+            <NeutralButton
               label={`Add "${query.trim()}"`}
               onPress={() =>
                 addToShortlist({ name: query.trim(), address: null, placeId: null, lat: null, lng: null })
@@ -223,7 +223,7 @@ export function VenueSection({
           {error && <Text color={brand.danger} fontSize={14}>{error}</Text>}
 
           {shortlist.length > 0 && (
-            <GradientButton
+            <PushButton
               label={shortlist.length === 1 ? `Set "${shortlist[0].name}"` : `Put ${shortlist.length} places to a vote`}
               onPress={submit}
               busy={busy}

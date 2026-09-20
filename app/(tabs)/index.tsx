@@ -2,15 +2,27 @@ import { useCallback, useState } from 'react';
 import { RefreshControl, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect, useRouter } from 'expo-router';
-import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { Text, View } from 'tamagui';
 import { useAuth } from '@/lib/auth';
 import { bucketPlans, formatSlot, type Plan } from '@/lib/plans';
 import { fetchMyPlans } from '@/lib/planQueries';
 import { monthGrid, weekGrid, type Day } from '@/lib/calendar';
-import { brand } from '@/lib/theme';
-import { Avatar, Card, FadeIn, Heading, Muted, Screen, Tappable, Title } from '@/components/ui';
+import { brand, radius } from '@/lib/theme';
+import {
+  Avatar,
+  Badge,
+  Card,
+  EmptyState,
+  FadeIn,
+  Heading,
+  LargeTitle,
+  Muted,
+  PushButton,
+  Screen,
+  SectionLabel,
+  Tappable,
+} from '@/components/ui';
 
 const WEEKDAYS = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
 
@@ -47,54 +59,69 @@ export default function Home() {
     setAnchor(next);
   }
 
+  const nothingYet = plans.length === 0;
+
   return (
     <Screen>
-      <LinearGradient
-        colors={['#ececfb', brand.bg]}
-        style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 260 }}
-      />
       <SafeAreaView style={{ flex: 1 }} edges={['top']}>
         <ScrollView
-          contentContainerStyle={{ padding: 20, paddingBottom: 40, gap: 18 }}
+          contentContainerStyle={{ padding: 20, paddingBottom: 40, gap: 20 }}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={load} />}
         >
           <FadeIn>
             <View flexDirection="row" alignItems="center" justifyContent="space-between">
               <View>
                 <Muted>Welcome back</Muted>
-                <Title>{profile?.display_name ?? 'there'}</Title>
+                <LargeTitle>{profile?.display_name ?? 'there'}</LargeTitle>
               </View>
-              <Avatar name={profile?.display_name ?? '?'} color={profile?.avatar_color} size={46} />
+              <Avatar name={profile?.display_name ?? '?'} color={profile?.avatar_color} size={52} />
             </View>
           </FadeIn>
 
-          <FadeIn delay={60}>
-            <Card padding={14}>
+          {/* Three stat tiles, one per base colour — the app's pulse at a glance. */}
+          <FadeIn delay={50}>
+            <View flexDirection="row" gap={10}>
+              <Stat value={votingOpen.length} label="Deciding" tone="accent" emoji="🗳️" />
+              <Stat value={scheduled.length} label="Locked in" tone="success" emoji="🎉" />
+              <Stat value={past.length} label="Done" tone="primary" emoji="📼" />
+            </View>
+          </FadeIn>
+
+          <FadeIn delay={100}>
+            <Card padding={14} gap={12}>
               <View flexDirection="row" alignItems="center" justifyContent="space-between">
                 <Tappable onPress={() => shift(-1)}>
-                  <Ionicons name="chevron-back" size={22} color={brand.primary} />
+                  <View padding={4}>
+                    <Ionicons name="chevron-back" size={22} color={String(brand.primary)} />
+                  </View>
                 </Tappable>
-                <Heading>
-                  {anchor.toLocaleDateString(undefined, { month: 'long', year: 'numeric' })}
-                </Heading>
+                <Heading>{anchor.toLocaleDateString(undefined, { month: 'long', year: 'numeric' })}</Heading>
                 <Tappable onPress={() => shift(1)}>
-                  <Ionicons name="chevron-forward" size={22} color={brand.primary} />
+                  <View padding={4}>
+                    <Ionicons name="chevron-forward" size={22} color={String(brand.primary)} />
+                  </View>
                 </Tappable>
               </View>
 
-              <View flexDirection="row" alignSelf="center" backgroundColor={brand.sunken} borderRadius={999} padding={3}>
+              <View
+                flexDirection="row"
+                alignSelf="center"
+                backgroundColor={brand.sunken}
+                borderRadius={radius.pill}
+                padding={3}
+              >
                 {(['month', 'week'] as const).map((m) => (
                   <Tappable key={m} onPress={() => setMode(m)}>
                     <View
-                      paddingHorizontal={18}
-                      paddingVertical={6}
-                      borderRadius={999}
+                      paddingHorizontal={20}
+                      paddingVertical={7}
+                      borderRadius={radius.pill}
                       backgroundColor={mode === m ? brand.surface : 'transparent'}
                     >
                       <Text
                         fontSize={13}
                         textTransform="capitalize"
-                        fontWeight={mode === m ? '700' : '500'}
+                        fontWeight="800"
                         color={mode === m ? brand.ink : brand.inkSoft}
                       >
                         {m}
@@ -104,9 +131,16 @@ export default function Home() {
                 ))}
               </View>
 
-              <View flexDirection="row" marginTop={4}>
+              <View flexDirection="row">
                 {WEEKDAYS.map((d, i) => (
-                  <Text key={i} width={`${100 / 7}%`} textAlign="center" fontSize={11} color={brand.inkSoft}>
+                  <Text
+                    key={i}
+                    width={`${100 / 7}%`}
+                    textAlign="center"
+                    fontSize={11}
+                    fontWeight="800"
+                    color={brand.inkSoft}
+                  >
                     {d}
                   </Text>
                 ))}
@@ -114,22 +148,62 @@ export default function Home() {
 
               <View flexDirection="row" flexWrap="wrap">
                 {days.map((day) => (
-                  <DayCell
-                    key={day.date}
-                    day={day}
-                    onPress={() => router.push(`/plan/${day.plans[0].id}`)}
-                  />
+                  <DayCell key={day.date} day={day} onPress={() => router.push(`/plan/${day.plans[0].id}`)} />
                 ))}
               </View>
             </Card>
           </FadeIn>
 
-          <Section title="Voting open" plans={votingOpen} delay={120} />
-          <Section title="Scheduled" plans={scheduled} delay={160} />
-          <Section title="Past" plans={past} delay={200} />
+          {nothingYet ? (
+            <FadeIn delay={150}>
+              <EmptyState
+                emoji="🌱"
+                title="No plans yet"
+                body="Start one, invite your friends, and let the group decide the rest."
+                action={
+                  <View marginTop={8}>
+                    <PushButton label="Create a plan" full={false} onPress={() => router.push('/new-plan')} />
+                  </View>
+                }
+              />
+            </FadeIn>
+          ) : (
+            <>
+              <Section title="Deciding" plans={votingOpen} delay={150} tone="accent" />
+              <Section title="Locked in" plans={scheduled} delay={190} tone="success" />
+              <Section title="Done" plans={past} delay={230} tone="primary" />
+            </>
+          )}
         </ScrollView>
       </SafeAreaView>
     </Screen>
+  );
+}
+
+function Stat({
+  value,
+  label,
+  tone,
+  emoji,
+}: {
+  value: number;
+  label: string;
+  tone: 'primary' | 'success' | 'accent';
+  emoji: string;
+}) {
+  const wash =
+    tone === 'success' ? brand.successWash : tone === 'accent' ? brand.accentWash : brand.primaryWash;
+  const ink = tone === 'success' ? brand.successDeep : tone === 'accent' ? brand.accentDeep : brand.primary;
+  return (
+    <View flex={1} backgroundColor={wash} borderRadius={radius.lg} padding={14} gap={2}>
+      <Text fontSize={18}>{emoji}</Text>
+      <Text fontSize={26} fontWeight="800" color={ink}>
+        {value}
+      </Text>
+      <Text fontSize={12} fontWeight="700" color={ink} opacity={0.8}>
+        {label}
+      </Text>
+    </View>
   );
 }
 
@@ -139,19 +213,19 @@ function DayCell({ day, onPress }: { day: Day; onPress: () => void }) {
     <View width={`${100 / 7}%`} alignItems="center" paddingVertical={3}>
       <Tappable onPress={busy ? onPress : undefined} disabled={!busy}>
         <View
-          width={32}
-          height={32}
-          borderRadius={16}
+          width={34}
+          height={34}
+          borderRadius={17}
           alignItems="center"
           justifyContent="center"
-          backgroundColor={busy ? brand.primary : 'transparent'}
-          borderWidth={day.isToday && !busy ? 1.5 : 0}
+          backgroundColor={busy ? brand.success : 'transparent'}
+          borderWidth={day.isToday && !busy ? 2 : 0}
           borderColor={brand.primary}
         >
           <Text
             fontSize={13}
-            fontWeight={day.isToday || busy ? '700' : '500'}
-            color={busy ? '#fff' : day.inCurrentPeriod ? brand.ink : brand.border}
+            fontWeight={day.isToday || busy ? '800' : '600'}
+            color={busy ? '#FFFFFF' : day.inCurrentPeriod ? brand.ink : brand.border}
           >
             {Number(day.date.slice(-2))}
           </Text>
@@ -161,40 +235,42 @@ function DayCell({ day, onPress }: { day: Day; onPress: () => void }) {
   );
 }
 
-function Section({ title, plans, delay }: { title: string; plans: Plan[]; delay: number }) {
+function Section({
+  title,
+  plans,
+  delay,
+  tone,
+}: {
+  title: string;
+  plans: Plan[];
+  delay: number;
+  tone: 'primary' | 'success' | 'accent';
+}) {
   const router = useRouter();
+  if (plans.length === 0) return null;
+
   return (
     <FadeIn delay={delay}>
       <View gap={10}>
-        <View flexDirection="row" alignItems="center" gap={8}>
-          <Heading>{title}</Heading>
-          <View backgroundColor={brand.primarySoft} paddingHorizontal={8} paddingVertical={2} borderRadius={999}>
-            <Text fontSize={12} fontWeight="700" color={brand.primary}>
-              {plans.length}
-            </Text>
-          </View>
-        </View>
-
-        {plans.length === 0 ? (
-          <Muted>Nothing here yet.</Muted>
-        ) : (
-          plans.map((p) => (
-            <Tappable key={p.id} onPress={() => router.push(`/plan/${p.id}`)}>
-              <Card>
-                <Text fontSize={16} fontWeight="700" color={brand.ink}>
+        <SectionLabel>{title}</SectionLabel>
+        {plans.map((p) => (
+          <Tappable key={p.id} onPress={() => router.push(`/plan/${p.id}`)}>
+            <Card flexDirection="row" alignItems="center" gap={12}>
+              <View flex={1} gap={3}>
+                <Text fontSize={17} fontWeight="800" color={brand.ink}>
                   {p.title}
                 </Text>
                 <Muted textTransform="capitalize">
                   {p.type}
-                  {p.confirmed_start
-                    ? ` · ${formatSlot(p.confirmed_start)}`
-                    : ''}
+                  {p.confirmed_start ? ` · ${formatSlot(p.confirmed_start)}` : ''}
                   {p.location_name ? ` · ${p.location_name}` : ''}
                 </Muted>
-              </Card>
-            </Tappable>
-          ))
-        )}
+              </View>
+              {p.status === 'decided' && <Badge label="Set" tone="success" />}
+              <Ionicons name="chevron-forward" size={18} color={String(brand.inkSoft)} />
+            </Card>
+          </Tappable>
+        ))}
       </View>
     </FadeIn>
   );

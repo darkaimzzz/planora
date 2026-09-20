@@ -95,7 +95,7 @@ export default function Chat() {
                 <View
                   alignSelf="center"
                   maxWidth="90%"
-                  backgroundColor={brand.primarySoft}
+                  backgroundColor={brand.primaryWash}
                   borderRadius={16}
                   paddingHorizontal={16}
                   paddingVertical={12}

@@ -5,7 +5,7 @@ import { Input, Text, View } from 'tamagui';
 import { useAuth } from '@/lib/auth';
 import { supabase } from '@/lib/supabase';
 import { AVATAR_COLORS, brand } from '@/lib/theme';
-import { Avatar, FadeIn, GradientButton, Muted, Screen, Tappable, Title } from '@/components/ui';
+import { Avatar, FadeIn, PushButton, Muted, Screen, Tappable, Title } from '@/components/ui';
 
 export default function Onboarding() {
   const { session, profile, refreshProfile } = useAuth();
@@ -82,7 +82,7 @@ export default function Onboarding() {
 
             {error && <Text color={brand.danger} fontSize={14}>{error}</Text>}
 
-            <GradientButton label="Continue" onPress={save} busy={busy} />
+            <PushButton label="Continue" onPress={save} busy={busy} />
           </View>
         </FadeIn>
       </SafeAreaView>

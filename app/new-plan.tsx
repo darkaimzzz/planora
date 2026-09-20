@@ -6,7 +6,7 @@ import { useAuth } from '@/lib/auth';
 import { createPlan } from '@/lib/planQueries';
 import { PLAN_TYPES, type PlanType } from '@/lib/plans';
 import { brand } from '@/lib/theme';
-import { Chip, FadeIn, GradientButton, Muted, Screen, Tappable, Title } from '@/components/ui';
+import { Chip, FadeIn, PushButton, Muted, Screen, Tappable, Title } from '@/components/ui';
 
 export default function NewPlan() {
   const { session } = useAuth();
@@ -69,7 +69,7 @@ export default function NewPlan() {
 
               {error && <Text color={brand.danger} fontSize={14}>{error}</Text>}
 
-              <GradientButton label="Create plan" onPress={submit} busy={busy} />
+              <PushButton label="Create plan" onPress={submit} busy={busy} />
               <Muted textAlign="center">
                 You'll set the place and share an invite link on the next screen.
               </Muted>

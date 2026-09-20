@@ -33,7 +33,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       .select(PROFILE_COLUMNS)
       .eq('id', userId)
       .maybeSingle();
-    setProfile((data as Profile) ?? null);
+
+    if (data) {
+      setProfile(data as Profile);
+      return;
+    }
+
+    // Signed in with no profile row — possible for anyone who signed up before
+    // the signup trigger existed. Without one, creating a plan fails on a
+    // foreign key with a baffling error, so repair it rather than carry on.
+    const { data: created, error } = await supabase.rpc('ensure_profile');
+    if (error) {
+      console.warn('could not create the missing profile', error);
+      setProfile(null);
+      return;
+    }
+    setProfile((Array.isArray(created) ? created[0] : created) as Profile);
   }
 
   useEffect(() => {
