@@ -8,8 +8,6 @@
 
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import Anthropic from 'npm:@anthropic-ai/sdk@0.69.0';
-import { z } from 'npm:zod@3.24.1';
-import { zodOutputFormat } from 'npm:@anthropic-ai/sdk@0.69.0/helpers/zod';
 
 // Pure logic shared with the app — no imports of its own, so both Metro and
 // Deno can load it.
@@ -17,9 +15,10 @@ import { pickWinner, topSlots, type AvailabilityRow, type Tally } from '../../..
 
 const db = createClient(
   Deno.env.get('SUPABASE_URL')!,
-  // Secret key: bypasses RLS, which is why poll and system-message writes have
-  // no client-side insert policy.
-  Deno.env.get('SUPABASE_SECRET_KEY') ?? Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
+  // Auto-injected by Supabase. Bypasses RLS, which is why poll and
+  // system-message writes have no client-side insert policy.
+  // (A custom SUPABASE_* secret can't be set — the prefix is reserved.)
+  Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
 );
 
 const anthropicKey = Deno.env.get('ANTHROPIC_API_KEY');
@@ -70,35 +69,33 @@ async function pollHasResolved(state: {
 
 // ------------------------------------------------------------- Claude
 
-const VenueSuggestions = z.object({
-  venues: z
-    .array(z.object({ name: z.string(), why: z.string() }))
-    .min(2)
-    .max(3),
-});
-
 async function suggestVenues(title: string, type: string): Promise<string[]> {
   if (!anthropic) {
     // ponytail: placeholder until the key lands, so the flow still completes.
     return ['Somewhere local', "Organiser's pick", 'A place nearby'];
   }
-  const response = await anthropic.messages.parse({
+  // One venue per line rather than a JSON schema: the SDK's zod helper has no
+  // resolvable subpath in the edge runtime, and three lines need no schema.
+  const response = await anthropic.messages.create({
     model: 'claude-opus-5',
-    max_tokens: 1024,
+    max_tokens: 400,
     system:
-      'You suggest places for a group of friends to meet. Be concrete and brief. ' +
-      'No preamble, no questions back.',
+      'You suggest places for a group of friends to meet. Reply with exactly three ' +
+      'lines, one venue per line, each formatted "Name — one short reason". ' +
+      'No numbering, no preamble.',
     messages: [
-      {
-        role: 'user',
-        content: `Suggest 3 venue options for a ${type} called "${title}". Each needs a short name and one line on why it suits the group.`,
-      },
+      { role: 'user', content: `Suggest three venue options for a ${type} called "${title}".` },
     ],
-    output_config: { format: zodOutputFormat(VenueSuggestions) },
   });
-  const parsed = response.parsed_output;
-  if (!parsed) throw new Error('venue suggestions did not parse');
-  return parsed.venues.map((v) => `${v.name} — ${v.why}`);
+  const block = response.content.find((b) => b.type === 'text');
+  const text = block && block.type === 'text' ? block.text : '';
+  const lines = text
+    .split('\n')
+    .map((l) => l.replace(/^\s*[-*\d.)]+\s*/, '').trim())
+    .filter(Boolean)
+    .slice(0, 3);
+  if (lines.length < 2) throw new Error('venue suggestions came back unusable');
+  return lines;
 }
 
 async function draftConfirmation(title: string, when: string, venue: string): Promise<string> {
@@ -220,6 +217,7 @@ async function step(planId: string): Promise<boolean> {
             day: 'numeric',
             month: 'short',
             hour: 'numeric',
+            hour12: true,
           }),
           starts_at: startsAt.toISOString(),
           ends_at: endsAt.toISOString(),
@@ -288,6 +286,7 @@ async function step(planId: string): Promise<boolean> {
           day: 'numeric',
           month: 'short',
           hour: 'numeric',
+          hour12: true,
         })
       : 'the agreed time';
 

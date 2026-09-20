@@ -133,3 +133,39 @@ PRD §10. Two real users complete the whole flow end to end. Polish is explicitl
 
   **All eight build-order items are written. None has ever run against the
   database.** Next session's first job is the live pass, not new features.
+
+- **2026-09-20 — Live pass. The whole flow works against the real project.**
+  - Migration applied to `tnjgqoznxgeymipbxqqs`: 8 tables, RLS on all of them,
+    15 policies, 6 functions.
+  - `advance-plan` deployed and ACTIVE.
+  - **34 live assertions passed, 0 failed**, driven as two real signed-in users:
+    signup trigger, invite join (and re-join idempotency), preview before
+    joining, availability, voting, vote-changing, the full
+    time-poll → venue-poll → confirmation chain, and the AI message landing in
+    chat. Every RLS boundary was probed from the wrong side and held: a
+    non-attendee can't read the plan, vote, post, or write availability as
+    someone else; the creator can't force `status`; no client can create a poll.
+    A deliberate 1–1 tie resolved by availability count, as the PRD requires.
+  - Bugs found and fixed by running it:
+    - `react-native-web` missing — web wouldn't boot at all.
+    - 8 dependency versions behind the SDK (`expo install --fix`).
+    - The SDK's zod helper has no resolvable subpath in the edge runtime and
+      crashed the function on boot; venue suggestions now parse one-per-line.
+    - A custom `SUPABASE_*` secret can't be set (reserved prefix); the function
+      uses the auto-injected `SUPABASE_SERVICE_ROLE_KEY`.
+    - Slot labels read "19" instead of "7 pm" (missing `hour12`).
+  - Test data was deleted afterwards; the database is empty.
+
+  **Deploying the function** (the CLI isn't linked; this needs only the PAT):
+  ```
+  curl -X POST "https://api.supabase.com/v1/projects/<ref>/functions/deploy?slug=advance-plan" \
+    -H "Authorization: Bearer <sbp_ token>" \
+    -F 'metadata={"entrypoint_path":"supabase/functions/advance-plan/index.ts","name":"advance-plan","verify_jwt":false};type=application/json' \
+    -F "file=@supabase/functions/advance-plan/index.ts;filename=supabase/functions/advance-plan/index.ts" \
+    -F "file=@lib/availability.ts;filename=lib/availability.ts"
+  ```
+
+  Remaining, all needing the user: `ANTHROPIC_API_KEY` as a function secret
+  (venue text and the confirmation are placeholders without it), Google OAuth
+  provider config, a cron schedule calling `advance-plan` with no body for the
+  24h cap, and a two-phone test of the invite deep link.
