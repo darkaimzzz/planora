@@ -1,8 +1,15 @@
 import { Tabs } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { brand } from '@/lib/theme';
 
+/** Content height of the bar, before the device's bottom inset. */
+export const TAB_BAR_HEIGHT = 76;
+
 export default function TabsLayout() {
+  // The bar has to clear the home indicator, or the labels get clipped.
+  const insets = useSafeAreaInsets();
+
   return (
     <Tabs
       screenOptions={{
@@ -12,11 +19,13 @@ export default function TabsLayout() {
         tabBarStyle: {
           backgroundColor: brand.surface,
           borderTopColor: brand.border,
-          height: 62,
-          paddingBottom: 8,
-          paddingTop: 6,
+          borderTopWidth: 1,
+          height: TAB_BAR_HEIGHT + insets.bottom,
+          paddingBottom: insets.bottom + 12,
+          paddingTop: 10,
         },
-        tabBarLabelStyle: { fontSize: 11, fontWeight: '600' },
+        tabBarLabelStyle: { fontSize: 11, fontWeight: '700', marginTop: 4, lineHeight: 14 },
+        tabBarIconStyle: { marginTop: 0 },
       }}
     >
       <Tabs.Screen

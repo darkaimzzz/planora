@@ -1,13 +1,16 @@
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Tabs, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Text, View } from 'tamagui';
 import { brand } from '@/lib/theme';
+import { TAB_BAR_HEIGHT } from '@/app/(tabs)/_layout';
 import { Tappable } from '@/components/ui';
 
 /** Per-plan tab set, nested inside the app-level tabs. */
 export default function PlanLayout() {
   const router = useRouter();
+  // Same inset the app-level bar uses, or the labels sit under the home indicator.
+  const insets = useSafeAreaInsets();
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: brand.bg }} edges={['top']}>
@@ -33,8 +36,15 @@ export default function PlanLayout() {
           headerShown: false,
           tabBarActiveTintColor: brand.primary,
           tabBarInactiveTintColor: brand.inkSoft,
-          tabBarStyle: { backgroundColor: brand.surface, borderTopColor: brand.border, height: 60, paddingBottom: 6, paddingTop: 6 },
-          tabBarLabelStyle: { fontSize: 11, fontWeight: '600' },
+          tabBarStyle: {
+            backgroundColor: brand.surface,
+            borderTopColor: brand.border,
+            borderTopWidth: 1,
+            height: TAB_BAR_HEIGHT + insets.bottom,
+            paddingBottom: insets.bottom + 12,
+            paddingTop: 10,
+          },
+          tabBarLabelStyle: { fontSize: 11, fontWeight: '700', marginTop: 4, lineHeight: 14 },
         }}
       >
         <Tabs.Screen

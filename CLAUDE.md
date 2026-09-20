@@ -300,3 +300,11 @@ PRD §10. Two real users complete the whole flow end to end. Polish is explicitl
     grid (4 hours) → save → time poll opens with exactly those hours → vote →
     closes → propose two places → vote → confirms → AI message posts to chat →
     roadmap reads 5 of 5 → Home shows it under "Locked in" with the right date.
+
+- **2026-09-20 — Tab bar labels were clipped.** Both bars set a fixed height
+  with no bottom safe-area inset, so on a device with a home indicator the
+  labels sat under it, and the inner content box was too short for a 24px icon
+  plus a label even without an inset. Both now use `useSafeAreaInsets()` and
+  share `TAB_BAR_HEIGHT` from the app-level layout, with room for the label.
+  Measured in the browser rather than eyeballed: labels' bottom edge is 864px
+  in an 896px viewport, comfortably inside the bar.
