@@ -10,6 +10,7 @@ import {
   type AvailabilityRow,
   type Cell,
 } from '../lib/availability';
+import { monthGrid, plansByDay, weekGrid } from '../lib/calendar';
 
 function plan(p: Partial<Plan>): Plan {
   return {
@@ -167,6 +168,43 @@ const now = new Date('2026-06-15T12:00:00Z');
   );
 
   assert.equal(pickWinner([]), null);
+}
+
+
+// ---------------------------------------------------------------- calendar
+{
+  const confirmed = plan({
+    status: 'decided',
+    title: 'Ramen',
+    confirmed_start: '2026-06-17T19:00:00',
+  });
+  const unconfirmed = plan({ status: 'voting' });
+
+  const grid = monthGrid(new Date('2026-06-15T12:00:00'), [confirmed, unconfirmed], now);
+  assert.equal(grid.length, 42, 'a month is always six rows, so the layout never jumps');
+  assert.equal(grid[0].date, '2026-06-01', 'June 2026 starts on a Monday, so no leading spill');
+
+  const withPlan = grid.find((d) => d.date === '2026-06-17')!;
+  assert.equal(withPlan.plans.length, 1);
+  assert.equal(withPlan.plans[0].title, 'Ramen');
+  assert.equal(
+    grid.reduce((n, d) => n + d.plans.length, 0),
+    1,
+    'a plan with no confirmed time is on no day at all',
+  );
+
+  assert.equal(grid.find((d) => d.date === '2026-06-15')!.isToday, true);
+  assert.equal(grid.find((d) => d.date === '2026-07-02')!.inCurrentPeriod, false);
+
+  // A week always starts on the Monday of the anchor's week.
+  const week = weekGrid(new Date('2026-06-17T12:00:00'), [confirmed], now);
+  assert.equal(week.length, 7);
+  assert.equal(week[0].date, '2026-06-15');
+  assert.equal(week[2].plans.length, 1);
+
+  // An evening plan must not slide to the next day via a UTC conversion.
+  const late = plan({ status: 'decided', confirmed_start: '2026-06-17T23:30:00' });
+  assert.equal([...plansByDay([late]).keys()][0], '2026-06-17');
 }
 
 console.log('ok');

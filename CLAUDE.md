@@ -119,3 +119,17 @@ PRD §10. Two real users complete the whole flow end to end. Polish is explicitl
 
   Next: Home calendar (last build-order item), then a live pass once the DB is
   reachable.
+
+- **2026-09-20 — Milestone 8: Home calendar.** Done. Build order complete.
+  - `lib/calendar.ts` — pure month/week grid. Month is always six rows so the
+    layout never jumps; dates are built from local components, because
+    `toISOString()` slides a late-evening plan into the next day.
+  - `app/(tabs)/index.tsx` — month/week toggle, prev/next navigation, confirmed
+    plans marked and tappable. Own plans only, per the locked decision; an
+    unconfirmed plan appears in the status lists but on no calendar day.
+  - Verified: `npm test` passes, `npx tsc --noEmit` clean, `npx expo export` bundles.
+  - No new dependency: a month grid is ~40 lines of pure code, cheaper than
+    pulling in a calendar library.
+
+  **All eight build-order items are written. None has ever run against the
+  database.** Next session's first job is the live pass, not new features.
