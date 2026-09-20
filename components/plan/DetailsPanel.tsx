@@ -1,11 +1,11 @@
 import { useState } from 'react';
-import { ScrollView, Share } from 'react-native';
-import * as Linking from 'expo-linking';
+import { ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Input, Text, View } from 'tamagui';
 import { useAuth } from '@/lib/auth';
 import { addAttendee, searchProfiles, updatePlanDetails } from '@/lib/planQueries';
 import { PLAN_TYPES, type PlanType } from '@/lib/plans';
+import { copyInvite, inviteLinkIsPublic, inviteUrl, shareInvite } from '@/lib/invite';
 import { usePlanData } from '@/lib/usePlanData';
 import { brand } from '@/lib/theme';
 import { Avatar, Card, Chip, ErrorState, FadeIn, PushButton, Heading, Loader, Muted, Screen, Tappable, Title } from '@/components/ui';
@@ -20,6 +20,7 @@ export function DetailsPanel({ id }: { id: string }) {
   const [editing, setEditing] = useState(false);
   const [title, setTitle] = useState('');
   const [type, setType] = useState<PlanType>('hangout');
+  const [copied, setCopied] = useState(false);
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<Found[]>([]);
 
@@ -28,7 +29,12 @@ export function DetailsPanel({ id }: { id: string }) {
   if (error || !plan) return <ErrorState message={error ?? 'This plan could not be found.'} onRetry={reload} />;
 
   const isCreator = plan.created_by === session?.user.id;
-  const inviteUrl = Linking.createURL(`/join/${plan.invite_token}`);
+  const link = inviteUrl(plan.invite_token);
+
+  function flashCopied() {
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1800);
+  }
 
   async function saveEdit() {
     await updatePlanDetails(plan!.id, title.trim() || plan!.title, type);
@@ -98,14 +104,51 @@ export function DetailsPanel({ id }: { id: string }) {
         {/* ---- Invite ---- */}
         <FadeIn delay={100}>
           <Card>
-            <Heading>Invite link</Heading>
-            <Muted numberOfLines={1}>{inviteUrl}</Muted>
-            <PushButton
-              label="Share invite"
-              onPress={() =>
-                Share.share({ message: `Join my plan "${plan.title}" on Planora: ${inviteUrl}` })
-              }
-            />
+            <View flexDirection="row" alignItems="center" gap={8}>
+              <Ionicons name="link-outline" size={18} color={String(brand.primary)} />
+              <Heading>Invite link</Heading>
+            </View>
+            <Muted>Anyone with this link joins the plan — no account needed up front.</Muted>
+
+            <View
+              backgroundColor={brand.sunken}
+              borderRadius={12}
+              paddingHorizontal={12}
+              paddingVertical={10}
+            >
+              <Text fontSize={13} color={brand.inkSoft} numberOfLines={1}>
+                {link}
+              </Text>
+            </View>
+
+            <View flexDirection="row" gap={10}>
+              <View flex={1}>
+                <PushButton
+                  label={copied ? 'Copied ✓' : 'Copy link'}
+                  tone={copied ? 'success' : 'primary'}
+                  onPress={async () => {
+                    if (await copyInvite(link)) flashCopied();
+                  }}
+                />
+              </View>
+              <View flex={1}>
+                <PushButton
+                  label="Share"
+                  tone="neutral"
+                  onPress={async () => {
+                    // Falls back to the clipboard where there's no share sheet.
+                    if ((await shareInvite(plan.title, link)) === 'copied') flashCopied();
+                  }}
+                />
+              </View>
+            </View>
+
+            {!inviteLinkIsPublic && (
+              <Muted>
+                This is a local address, so it only opens on this machine. Set
+                EXPO_PUBLIC_APP_URL to your deployed web address to send real links.
+              </Muted>
+            )}
           </Card>
         </FadeIn>
 

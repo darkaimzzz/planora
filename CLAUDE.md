@@ -352,3 +352,23 @@ PRD §10. Two real users complete the whole flow end to end. Polish is explicitl
     winners → confirmation posts to Chat → roadmap 5 of 5 → Home shows it under
     "Locked in" with the correct date and venue. Section switching is instant
     with no spinner.
+
+- **2026-09-20 — Invite sharing made actually usable.**
+  The invite link existed but was half-built for real sharing:
+  - `Share.share()` rejects on desktop web (React Native Web forwards to
+    `navigator.share`, which most desktop browsers lack), so the button did
+    nothing and the rejection went unhandled. `lib/invite.ts` now offers the
+    share sheet only where one exists and falls back to the clipboard, and the
+    card leads with an explicit **Copy link** button — the dependable action
+    everywhere — with "Copied ✓" feedback.
+  - The URL came from `Linking.createURL`, i.e. `planora://join/…` on a device
+    and `localhost` in development: useless pasted into a chat. `inviteUrl()`
+    uses `EXPO_PUBLIC_APP_URL` when set, and the card says plainly when the
+    link is local-only so it can't be mistaken for a sendable one.
+  - **Join verified end to end:** a third account with no plans opened an
+    invite link, was auto-joined, landed in the plan, and the attendee count
+    went 2 → 3.
+  - Noted: the Chrome extension tab degraded repeatedly during this session
+    (typing and clicks intermittently not reaching React, screenshot timeouts).
+    The join check was run with Playwright instead; the main flow earlier was
+    driven through the extension.

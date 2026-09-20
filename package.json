@@ -25,6 +25,7 @@
     "@tamagui/core": "^2.7.7",
     "expo": "~57.0.24",
     "expo-auth-session": "~57.0.12",
+    "expo-clipboard": "~57.0.2",
     "expo-constants": "~57.0.19",
     "expo-linear-gradient": "^57.0.2",
     "expo-linking": "~57.0.10",
