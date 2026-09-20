@@ -6,7 +6,9 @@ import { supabase } from '@/lib/supabase';
 import { advancePlan } from '@/lib/advance';
 import { HOURS, cellKey, cellsToRows, gridDays, rowsToCells, type Cell } from '@/lib/availability';
 import { brand } from '@/lib/theme';
-import { Loader, PushButton } from '@/components/ui';
+import { Ionicons } from '@expo/vector-icons';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { Loader, PushButton, Tappable } from '@/components/ui';
 
 const CELL_H = 34;
 const COL_W = 46;
@@ -136,12 +138,19 @@ export default function Availability() {
   if (loading) return <Loader />;
 
   return (
-    <View style={styles.flex}>
+    <SafeAreaView style={styles.flex} edges={['top']}>
       <View style={styles.header}>
-        <Text style={styles.hint}>Drag across the times you're free</Text>
-        <Text style={styles.count}>
-          {selected.size} hour{selected.size === 1 ? '' : 's'} picked
-        </Text>
+        <View style={styles.headerTop}>
+          <Tappable onPress={() => router.back()}>
+            <Ionicons name="chevron-back" size={26} color={String(brand.ink)} />
+          </Tappable>
+          <View style={styles.headerText}>
+            <Text style={styles.hint}>Drag across the times you're free</Text>
+            <Text style={styles.count}>
+              {selected.size} hour{selected.size === 1 ? '' : 's'} picked
+            </Text>
+          </View>
+        </View>
       </View>
 
       <ScrollView horizontal onScroll={remeasure} scrollEventThrottle={16}>
@@ -188,7 +197,7 @@ export default function Availability() {
           tone="success"
         />
       </View>
-    </View>
+    </SafeAreaView>
   );
 }
 
@@ -200,7 +209,9 @@ function formatHour(hour: number) {
 
 const styles = StyleSheet.create({
   flex: { flex: 1, backgroundColor: brand.bg as unknown as string },
-  header: { paddingHorizontal: 16, paddingTop: 14, paddingBottom: 10, gap: 2 },
+  header: { paddingHorizontal: 12, paddingTop: 10, paddingBottom: 10 },
+  headerTop: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  headerText: { flex: 1, gap: 2 },
   hint: { color: brand.ink as unknown as string, fontSize: 17, fontWeight: '700' },
   count: { color: brand.inkSoft as unknown as string, fontSize: 13, fontWeight: '600' },
   headerRow: { flexDirection: 'row', paddingLeft: 0 },

@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { ScrollView, Share } from 'react-native';
 import * as Linking from 'expo-linking';
-import { useGlobalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Input, Text, View } from 'tamagui';
 import { useAuth } from '@/lib/auth';
@@ -14,8 +13,7 @@ import { VenueSection } from '@/components/VenueSection';
 
 type Found = { id: string; display_name: string; avatar_color: string };
 
-export default function Details() {
-  const { id } = useGlobalSearchParams<{ id: string }>();
+export function DetailsPanel({ id }: { id: string }) {
   const { session } = useAuth();
   const { plan, attendees, loading, error, reload } = usePlanData(id);
 

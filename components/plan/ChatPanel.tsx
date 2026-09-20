@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
 import { FlatList, KeyboardAvoidingView, Platform } from 'react-native';
-import { useGlobalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Input, Text, View } from 'tamagui';
 import { useAuth } from '@/lib/auth';
@@ -18,8 +17,7 @@ type Message = {
 
 const SELECT = 'id, user_id, content, created_at, profiles(display_name, avatar_color)';
 
-export default function Chat() {
-  const { id } = useGlobalSearchParams<{ id: string }>();
+export function ChatPanel({ id }: { id: string }) {
   const { session } = useAuth();
   const [messages, setMessages] = useState<Message[]>([]);
   const [draft, setDraft] = useState('');

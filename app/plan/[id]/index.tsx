@@ -1,119 +1,114 @@
-import { ScrollView } from 'react-native';
+import { useState } from 'react';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useGlobalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { MotiView } from 'moti';
 import { Text, View } from 'tamagui';
-import { formatSlot } from '@/lib/plans';
-import { deriveRoadmap } from '@/lib/roadmap';
-import { usePlanData } from '@/lib/usePlanData';
-import { brand } from '@/lib/theme';
-import { Badge, Card, ErrorState, FadeIn, Heading, Loader, Muted, ProgressBar, PushButton, Screen, Title } from '@/components/ui';
+import { RoadmapPanel } from '@/components/plan/RoadmapPanel';
+import { VotingPanel } from '@/components/plan/VotingPanel';
+import { ChatPanel } from '@/components/plan/ChatPanel';
+import { DetailsPanel } from '@/components/plan/DetailsPanel';
+import { Loader, Screen, Tappable } from '@/components/ui';
+import { brand, radius } from '@/lib/theme';
 
-export default function Roadmap() {
+const SECTIONS = [
+  { key: 'roadmap', label: 'Plan', icon: 'git-commit-outline' },
+  { key: 'voting', label: 'Vote', icon: 'checkbox-outline' },
+  { key: 'chat', label: 'Chat', icon: 'chatbubbles-outline' },
+  { key: 'details', label: 'Details', icon: 'people-outline' },
+] as const;
+
+type SectionKey = (typeof SECTIONS)[number]['key'];
+
+/**
+ * One screen for a whole plan. The four sections are a segmented control
+ * rather than a tab bar: a nested tab navigator inside this dynamic route
+ * broke on web, and a detail view with a handful of sections is what iOS uses
+ * a segmented control for anyway.
+ */
+export default function PlanScreen() {
   const { id } = useGlobalSearchParams<{ id: string }>();
-  const { plan, roadmap, loading, error, reload } = usePlanData(id);
   const router = useRouter();
+  const [section, setSection] = useState<SectionKey>('roadmap');
 
-  if (loading) return <Loader />;
-  if (error || !plan) return <ErrorState message={error ?? 'This plan could not be found.'} onRetry={reload} />;
-
-  const steps = deriveRoadmap(roadmap);
-  const doneCount = steps.filter((s) => s.state === 'done').length;
+  if (!id) return <Loader />;
 
   return (
     <Screen>
-      <ScrollView contentContainerStyle={{ padding: 20, gap: 18 }}>
-        <FadeIn>
-          <View gap={2}>
-            <Title>{plan?.title}</Title>
-            <Muted textTransform="capitalize">
-              {plan?.type}
-              {plan?.location_name ? ` · ${plan.location_name}` : ''}
-            </Muted>
-          </View>
-        </FadeIn>
-
-        <FadeIn delay={40}>
-          <Card gap={12}>
-            <View flexDirection="row" alignItems="center" justifyContent="space-between">
-              <Heading>Progress</Heading>
-              <Badge
-                label={`${doneCount} of ${steps.length}`}
-                tone={doneCount === steps.length ? 'success' : 'accent'}
-              />
+      <SafeAreaView style={{ flex: 1 }} edges={['top']}>
+        <View
+          flexDirection="row"
+          alignItems="center"
+          paddingHorizontal={12}
+          paddingVertical={8}
+          gap={4}
+          backgroundColor={brand.surface}
+          borderBottomWidth={1}
+          borderBottomColor={brand.border}
+        >
+          <Tappable onPress={() => router.back()}>
+            <View padding={6}>
+              <Ionicons name="chevron-back" size={26} color={String(brand.ink)} />
             </View>
-            <ProgressBar value={doneCount / steps.length} />
-          </Card>
-        </FadeIn>
+          </Tappable>
 
-        <FadeIn delay={80}>
-          <Card paddingVertical={20}>
-            {steps.map((step, i) => (
-              <View key={step.stage} flexDirection="row" gap={14}>
-                <View alignItems="center" width={18}>
-                  <MotiView
-                    from={{ scale: 0.6 }}
-                    animate={{ scale: 1 }}
-                    transition={{ type: 'spring', damping: 12, delay: i * 70 }}
+          {/* Segmented control, iOS style: one sliding pill inside a track. */}
+          <View
+            flex={1}
+            flexDirection="row"
+            backgroundColor={brand.sunken}
+            borderRadius={radius.pill}
+            padding={3}
+          >
+            {SECTIONS.map((s) => {
+              const active = section === s.key;
+              return (
+                // Tappable wraps its child in a Pressable, which does not take
+                // the flex itself — so the segment gets its width from here.
+                <View key={s.key} flex={1}>
+                <Tappable onPress={() => setSection(s.key)} style={{ flex: 1 }}>
+                  <View
+                    flex={1}
+                    flexDirection="row"
+                    gap={5}
+                    alignItems="center"
+                    justifyContent="center"
+                    paddingVertical={8}
+                    borderRadius={radius.pill}
+                    backgroundColor={active ? brand.surface : 'transparent'}
+                    shadowColor={brand.ink}
+                    shadowOpacity={active ? 0.08 : 0}
+                    shadowRadius={6}
+                    shadowOffset={{ width: 0, height: 2 }}
                   >
-                    <View
-                      width={14}
-                      height={14}
-                      borderRadius={7}
-                      borderWidth={step.state === 'current' ? 4 : 2}
-                      borderColor={step.state === 'pending' ? brand.border : step.state === 'done' ? brand.success : brand.accent}
-                      backgroundColor={step.state === 'done' ? brand.success : brand.surface}
+                    <Ionicons
+                      name={s.icon}
+                      size={15}
+                      color={String(active ? brand.primary : brand.inkSoft)}
                     />
-                  </MotiView>
-                  {i < steps.length - 1 && (
-                    <View
-                      flex={1}
-                      width={2}
-                      minHeight={34}
-                      backgroundColor={step.state === 'done' ? brand.success : brand.border}
-                    />
-                  )}
+                    <Text
+                      fontSize={12}
+                      fontWeight="800"
+                      color={active ? brand.ink : brand.inkSoft}
+                    >
+                      {s.label}
+                    </Text>
+                  </View>
+                </Tappable>
                 </View>
-                <View flex={1} paddingBottom={26}>
-                  <Text
-                    fontSize={16}
-                    marginTop={-3}
-                    fontWeight={step.state === 'pending' ? '500' : '700'}
-                    color={step.state === 'pending' ? brand.inkSoft : brand.ink}
-                  >
-                    {step.stage}
-                  </Text>
-                  {step.state === 'current' && step.blocker && (
-                    <Muted marginTop={3}>{step.blocker}</Muted>
-                  )}
-                </View>
-              </View>
-            ))}
-          </Card>
-        </FadeIn>
+              );
+            })}
+          </View>
+        </View>
 
-        {plan?.status === 'decided' ? (
-          <FadeIn delay={120}>
-            <Card backgroundColor={brand.successWash} borderColor={brand.success}>
-              <View flexDirection="row" alignItems="center" gap={8}>
-                <Ionicons name="checkmark-circle" size={22} color={String(brand.success)} />
-                <Text fontWeight="800" fontSize={17} color={brand.successDeep}>It's happening 🎉</Text>
-              </View>
-              <Text fontSize={15} color={brand.ink}>
-                {plan.confirmed_start
-                  ? formatSlot(plan.confirmed_start, { weekday: 'long', month: 'long' })
-                  : 'Time to be confirmed'}
-                {plan.confirmed_venue ? ` · ${plan.confirmed_venue}` : ''}
-              </Text>
-            </Card>
-          </FadeIn>
-        ) : (
-          <PushButton
-            label="Mark my availability"
-            onPress={() => router.push(`/plan/${id}/availability`)}
-          />
-        )}
-      </ScrollView>
+        {/* Each panel is mounted only while it is shown, so its queries and
+            realtime subscription come and go with it. */}
+        <View flex={1}>
+          {section === 'roadmap' && <RoadmapPanel id={id} />}
+          {section === 'voting' && <VotingPanel id={id} />}
+          {section === 'chat' && <ChatPanel id={id} />}
+          {section === 'details' && <DetailsPanel id={id} />}
+        </View>
+      </SafeAreaView>
     </Screen>
   );
 }

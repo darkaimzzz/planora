@@ -334,3 +334,21 @@ PRD §10. Two real users complete the whole flow end to end. Polish is explicitl
   Direct URLs and the app-level tabs work. Worth replacing the inner navigator
   with a segmented control on one screen, which is also closer to Apple's
   pattern for a detail view. Native is likely unaffected but untested.
+
+- **2026-09-20 — Per-plan sections are a segmented control, not nested tabs.**
+  The nested `Tabs` inside `plan/[id]` was the cause of the dead tab presses on
+  web. It is gone: `plan/[id]/index.tsx` is one screen with an iOS-style
+  segmented control (Plan / Vote / Chat / Details), and the four former screens
+  are panels in `components/plan/` that take the plan id as a prop — so there is
+  no route lookup to lose and only one navigator in play. `availability` stays a
+  route of its own and got the back button the old tab layout used to provide.
+  - `Tappable` wraps its child in a `Pressable`, which does not inherit a flex
+    passed through `style`; the segments are wrapped in a flexed `View` so they
+    share the width evenly.
+  - **Full flow re-driven through the Chrome extension, all passing:** sign in →
+    create plan → rename via Edit title & type → shortlist two places → put them
+    to a vote → mark availability by dragging (4 contiguous hours) → save → time
+    poll opens with exactly those hours → vote → both polls close with the right
+    winners → confirmation posts to Chat → roadmap 5 of 5 → Home shows it under
+    "Locked in" with the correct date and venue. Section switching is instant
+    with no spinner.
