@@ -17,14 +17,19 @@ export function parseCell(cell: Cell): { day: string; hour: number } {
   return { day, hour: Number(hour) };
 }
 
-/** ISO dates for the grid columns, starting today. */
+/**
+ * Calendar dates for the grid columns, starting today.
+ *
+ * Built from local date parts, not toISOString(): east of Greenwich local
+ * midnight is still the previous day in UTC, which would label every column
+ * one day early and store availability against the wrong dates.
+ */
 export function gridDays(from = new Date()): string[] {
-  const base = new Date(from);
-  base.setHours(0, 0, 0, 0);
   return Array.from({ length: GRID_DAYS }, (_, i) => {
-    const d = new Date(base);
-    d.setDate(base.getDate() + i);
-    return d.toISOString().slice(0, 10);
+    const d = new Date(from.getFullYear(), from.getMonth(), from.getDate() + i);
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const dayOfMonth = String(d.getDate()).padStart(2, '0');
+    return `${d.getFullYear()}-${month}-${dayOfMonth}`;
   });
 }
 

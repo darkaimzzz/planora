@@ -276,3 +276,27 @@ PRD §10. Two real users complete the whole flow end to end. Polish is explicitl
     progress bar and colour-codes stages green/amber/grey.
   - Verified: `npm run check` clean, and every rebuilt screen was loaded in the
     browser against seeded data.
+
+- **2026-09-20 — Three bugs found by driving the app in Chrome end to end.**
+  1. **Availability grid crashed on open.** `onLayout` used `e.target.measure`,
+     which is undefined on web. Now a ref plus `measureInWindow`, re-measured
+     on layout, on both scroll views' scroll, and at the start of each drag —
+     the grid sits inside two scroll views, so a stale origin would paint the
+     wrong cells.
+  2. **The grid started on the wrong day.** `gridDays` built dates with
+     `toISOString()`, so east of Greenwich local midnight is still yesterday in
+     UTC: every column was labelled a day early and availability was stored
+     against the wrong dates. Built from local parts now, with tests covering
+     month and year rollover under two timezones.
+  3. **Every Edge Function call from the browser was blocked by CORS.** The
+     function sent no CORS headers, so on web the poll never opened. It now
+     answers the preflight and sets the headers on every response. Invisible on
+     native, fatal on web — which is where the app is being tested.
+  - Also fixed while testing: `npm run seed` recreates accounts with new ids, so
+    a browser holding the old JWT hits a foreign-key error on insert. Signing
+    out and in clears it; `ensure_profile` was verified to return 200 and
+    rebuild a genuinely missing profile row.
+  - **Whole flow driven through Chrome and verified:** create plan → drag the
+    grid (4 hours) → save → time poll opens with exactly those hours → vote →
+    closes → propose two places → vote → confirms → AI message posts to chat →
+    roadmap reads 5 of 5 → Home shows it under "Locked in" with the right date.

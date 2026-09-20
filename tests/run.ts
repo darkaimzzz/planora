@@ -6,6 +6,7 @@ import {
   cellsToRows,
   pickWinner,
   rowsToCells,
+  gridDays,
   topSlots,
   type AvailabilityRow,
   type Cell,
@@ -292,6 +293,22 @@ const now = new Date('2026-06-15T12:00:00Z');
   });
   assert.ok(voted.every((s) => s.state === 'done'));
   assert.equal(voted.length, 5);
+}
+
+
+// --------------------------------------------------------- grid day labels
+{
+  // The grid must start on today's local date. Building it through
+  // toISOString() would return yesterday for anyone east of Greenwich,
+  // silently storing availability against the wrong day.
+  const days = gridDays(new Date(2026, 8, 20, 0, 30)); // 20 Sep 2026, 00:30 local
+  assert.equal(days[0], '2026-09-20', 'the first column is today, not yesterday');
+  assert.equal(days.length, 7);
+  assert.equal(days[6], '2026-09-26');
+
+  // Month and year rollovers.
+  assert.deepEqual(gridDays(new Date(2026, 8, 29)).slice(0, 3), ['2026-09-29', '2026-09-30', '2026-10-01']);
+  assert.equal(gridDays(new Date(2026, 11, 31))[1], '2027-01-01');
 }
 
 console.log('ok');

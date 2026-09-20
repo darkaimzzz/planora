@@ -297,7 +297,18 @@ async function step(planId: string): Promise<boolean> {
   return false;
 }
 
+// The app calls this from the browser during development (Expo web), so the
+// function has to answer the preflight itself — Edge Functions add no CORS
+// headers of their own, and without these every web call fails before it runs.
+const CORS = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+};
+
 Deno.serve(async (req) => {
+  if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS });
+
   try {
     const body = await req.json().catch(() => ({}));
 
@@ -327,9 +338,9 @@ Deno.serve(async (req) => {
       for (let i = 0; i < 5 && (await step(planId)); i++);
     }
 
-    return Response.json({ ok: true, advanced: planIds.length });
+    return Response.json({ ok: true, advanced: planIds.length }, { headers: CORS });
   } catch (err) {
     console.error(err);
-    return Response.json({ ok: false, error: String(err) }, { status: 500 });
+    return Response.json({ ok: false, error: String(err) }, { status: 500, headers: CORS });
   }
 });
