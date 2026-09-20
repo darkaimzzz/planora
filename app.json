@@ -3,14 +3,17 @@
     "name": "Planora",
     "slug": "planora",
     "scheme": "planora",
-    "version": "0.1.0",
+    "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
     "ios": {
-      "supportsTablet": true,
-      "bundleIdentifier": "com.darkaimzzz.planora"
+      "supportsTablet": false,
+      "bundleIdentifier": "com.darkaimzzz.planora",
+      "config": {
+        "usesNonExemptEncryption": false
+      }
     },
     "android": {
       "package": "com.darkaimzzz.planora",
