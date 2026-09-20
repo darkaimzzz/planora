@@ -1,7 +1,7 @@
 import { useCallback, useState } from 'react';
-import { RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useFocusEffect } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
 import { useAuth } from '@/lib/auth';
 import { bucketPlans, type Plan } from '@/lib/plans';
 import { fetchMyPlans } from '@/lib/planQueries';
@@ -54,6 +54,7 @@ export default function Home() {
 }
 
 function Section({ title, plans }: { title: string; plans: Plan[] }) {
+  const router = useRouter();
   return (
     <View style={styles.section}>
       <Text style={styles.sectionTitle}>
@@ -63,14 +64,14 @@ function Section({ title, plans }: { title: string; plans: Plan[] }) {
         <Text style={styles.empty}>Nothing here yet.</Text>
       ) : (
         plans.map((p) => (
-          <View key={p.id} style={styles.card}>
+          <Pressable key={p.id} style={styles.card} onPress={() => router.push(`/plan/${p.id}`)}>
             <Text style={styles.cardTitle}>{p.title}</Text>
             <Text style={styles.cardMeta}>
               {p.type}
               {p.confirmed_start ? ` · ${new Date(p.confirmed_start).toLocaleString()}` : ''}
               {p.confirmed_venue ? ` · ${p.confirmed_venue}` : ''}
             </Text>
-          </View>
+          </Pressable>
         ))
       )}
     </View>

@@ -1,7 +1,7 @@
 import { useCallback, useState } from 'react';
 import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useFocusEffect } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
 import type { Plan } from '@/lib/plans';
 import { fetchMyPlans } from '@/lib/planQueries';
 import { colors } from '@/lib/theme';
@@ -13,6 +13,7 @@ const STATUS_LABEL: Record<Plan['status'], string> = {
 };
 
 export default function Plans() {
+  const router = useRouter();
   const [plans, setPlans] = useState<Plan[]>([]);
   const [refreshing, setRefreshing] = useState(false);
 
@@ -35,8 +36,7 @@ export default function Plans() {
     <SafeAreaView style={styles.safe} edges={['top']}>
       <View style={styles.header}>
         <Text style={styles.title}>Plans</Text>
-        {/* Creating and opening plans lands with the next milestone. */}
-        <Pressable style={styles.newButton} disabled>
+        <Pressable style={styles.newButton} onPress={() => router.push('/new-plan')}>
           <Text style={styles.newButtonText}>New plan</Text>
         </Pressable>
       </View>
@@ -51,12 +51,12 @@ export default function Plans() {
           <Text style={styles.empty}>No plans yet. Create one and invite your friends.</Text>
         }
         renderItem={({ item }) => (
-          <View style={styles.card}>
+          <Pressable style={styles.card} onPress={() => router.push(`/plan/${item.id}`)}>
             <Text style={styles.cardTitle}>{item.title}</Text>
             <Text style={styles.cardMeta}>
               {item.type} · {STATUS_LABEL[item.status]}
             </Text>
-          </View>
+          </Pressable>
         )}
       />
     </SafeAreaView>
@@ -73,7 +73,7 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
   },
   title: { fontSize: 26, fontWeight: '800', color: colors.text },
-  newButton: { backgroundColor: colors.accent, borderRadius: 10, paddingHorizontal: 14, paddingVertical: 9, opacity: 0.5 },
+  newButton: { backgroundColor: colors.accent, borderRadius: 10, paddingHorizontal: 14, paddingVertical: 9 },
   newButtonText: { color: '#fff', fontWeight: '600' },
   list: { padding: 20, paddingTop: 4, gap: 10 },
   empty: { color: colors.muted, fontSize: 14 },

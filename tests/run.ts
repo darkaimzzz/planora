@@ -1,6 +1,7 @@
 // Plain assert checks. Run with: npm test
 import assert from 'node:assert/strict';
 import { bucketPlans, type Plan } from '../lib/plans';
+import { deriveRoadmap } from '../lib/roadmap';
 
 function plan(p: Partial<Plan>): Plan {
   return {
@@ -40,6 +41,57 @@ const now = new Date('2026-06-15T12:00:00Z');
   const { scheduled, past } = bucketPlans([plan({ status: 'decided' })], now);
   assert.equal(scheduled.length, 1);
   assert.equal(past.length, 0);
+}
+
+
+// ---------------------------------------------------------------- roadmap
+{
+
+
+  // Fresh plan: availability is the live stage, and it names who's missing.
+  const fresh = deriveRoadmap({
+    attendeeCount: 5,
+    availabilityCount: 3,
+    timePoll: null,
+    venuePoll: null,
+    confirmed: false,
+  });
+  assert.equal(fresh[0].state, 'done');
+  assert.equal(fresh[1].state, 'current');
+  assert.match(fresh[1].blocker!, /waiting on 2\/5/);
+  assert.equal(fresh[2].state, 'pending');
+
+  // Availability in, time poll running: current stage moves on.
+  const voting = deriveRoadmap({
+    attendeeCount: 2,
+    availabilityCount: 2,
+    timePoll: { status: 'open', voteCount: 1 },
+    venuePoll: null,
+    confirmed: false,
+  });
+  assert.equal(voting[1].state, 'done');
+  assert.equal(voting[2].state, 'current');
+  assert.match(voting[2].blocker!, /waiting on 1\/2 to vote on time/);
+
+  // Everything closed and confirmed: no stage is left current.
+  const done = deriveRoadmap({
+    attendeeCount: 2,
+    availabilityCount: 2,
+    timePoll: { status: 'closed', voteCount: 2 },
+    venuePoll: { status: 'closed', voteCount: 2 },
+    confirmed: true,
+  });
+  assert.ok(done.every((s) => s.state === 'done'), 'a confirmed plan has every stage done');
+
+  // A plan with no attendees must not read as "availability collected".
+  const empty = deriveRoadmap({
+    attendeeCount: 0,
+    availabilityCount: 0,
+    timePoll: null,
+    venuePoll: null,
+    confirmed: false,
+  });
+  assert.equal(empty[1].state, 'current');
 }
 
 console.log('ok');

@@ -78,3 +78,20 @@ PRD §10. Two real users complete the whole flow end to end. Polish is explicitl
 
   Next: plan create + invite link + deep-link join (`app/join/[token].tsx`,
   which the auth gate already leaves alone).
+
+- **2026-09-20 — Milestone 3: plan create, invites, deep-link join, plan shell.** Done.
+  - `app/new-plan.tsx` — title + type, lands you in the new plan.
+  - `app/join/[token].tsx` — invite landing. Signed in, it joins and redirects
+    without a tap; signed out, it parks the token (`lib/pendingInvite.ts`) and
+    the root layout redeems it after sign-up, so a cold invite still ends in the
+    right plan.
+  - `app/plan/[id]/` — per-plan tabs: Roadmap (derived, live), Voting
+    (placeholder until polls exist), Chat (Supabase Realtime, AI messages render
+    as centred system bubbles), Details (invite link, user search, attendee
+    list, creator-only title/type edit).
+  - `lib/roadmap.ts` is pure and covered by asserts; `lib/usePlanData.ts` holds
+    the per-plan queries plus a realtime subscription that reloads rather than
+    patching state in place.
+  - Verified: `npm test` passes, `npx tsc --noEmit` clean, `npx expo export` bundles.
+
+  Next: availability grid, then the time poll.

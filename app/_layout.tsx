@@ -3,6 +3,7 @@ import { ActivityIndicator, View } from 'react-native';
 import { Stack, useRouter, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { AuthProvider, useAuth } from '@/lib/auth';
+import { pendingInvite } from '@/lib/pendingInvite';
 import { colors } from '@/lib/theme';
 
 /**
@@ -27,7 +28,9 @@ function AuthGate() {
     } else if (profile && !profile.onboarded) {
       if (top !== 'onboarding') router.replace('/onboarding');
     } else if (top === 'sign-in' || top === 'onboarding') {
-      router.replace('/');
+      // A token parked before sign-up means they arrived from an invite link:
+      // finish that journey instead of dumping them on Home.
+      pendingInvite.get().then((token) => router.replace(token ? `/join/${token}` : '/'));
     }
   }, [loading, session, profile, segments, router]);
 

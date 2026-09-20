@@ -3,6 +3,10 @@
 
 export type PlanStatus = 'collecting' | 'voting' | 'decided';
 
+/** Purely a label; it gives the venue suggester context (PRD §7.1). */
+export const PLAN_TYPES = ['dinner', 'hangout', 'trip'] as const;
+export type PlanType = (typeof PLAN_TYPES)[number];
+
 export type Plan = {
   id: string;
   title: string;
