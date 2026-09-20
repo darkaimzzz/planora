@@ -95,3 +95,27 @@ PRD §10. Two real users complete the whole flow end to end. Polish is explicitl
   - Verified: `npm test` passes, `npx tsc --noEmit` clean, `npx expo export` bundles.
 
   Next: availability grid, then the time poll.
+
+- **2026-09-20 — Milestones 4–7: availability, both polls, confirmation.** Code done,
+  unverified against a live DB.
+  - `lib/availability.ts` — pure grid/overlap/tie-break logic, covered by asserts:
+    cells↔rows round-trip, top-3 overlap, and all three tie-break tiers.
+  - `app/plan/[id]/availability.tsx` — drag-select grid (7 days × 08:00–23:00).
+    The first cell of a drag decides paint vs erase. Saving replaces your rows
+    and nudges the server.
+  - `supabase/functions/advance-plan/index.ts` — **the whole vote flow in one
+    idempotent entry point**: open time poll → close (Jev + 24h cap) → lock the
+    slot → Claude venue suggestions → close → confirm + post the AI message.
+    Called by the client after any action, and with no body it sweeps every
+    overdue poll for cron. Imports the same pure logic the app uses, so the
+    tie-break can't drift between client and server.
+  - `app/plan/[id]/voting.tsx` — live poll UI with vote bars, realtime updates,
+    and vote-changing via upsert.
+  - Verified: `npm test` passes, `npx tsc --noEmit` clean, `npx expo export` bundles.
+  - Choices made without asking: one-hour slot granularity (marked `ponytail:`
+    in `topSlots`); Jev falls back to "leader unbeatable AND half have voted"
+    when `JEV_API_KEY` is absent; Claude calls use `claude-opus-5` and degrade
+    to placeholder text without `ANTHROPIC_API_KEY`.
+
+  Next: Home calendar (last build-order item), then a live pass once the DB is
+  reachable.

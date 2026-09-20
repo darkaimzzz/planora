@@ -1,0 +1,5 @@
+project_id = "planbot"
+
+[functions.advance-plan]
+# Cron hits this with no body, which makes it sweep every overdue poll.
+verify_jwt = false

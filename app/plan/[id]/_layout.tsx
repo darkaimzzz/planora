@@ -48,6 +48,8 @@ export default function PlanLayout() {
             tabBarIcon: ({ color, size }) => <Ionicons name="chatbubbles-outline" color={color} size={size} />,
           }}
         />
+        {/* Reached from Roadmap/Voting, not a tab of its own. */}
+        <Tabs.Screen name="availability" options={{ href: null }} />
         <Tabs.Screen
           name="details"
           options={{

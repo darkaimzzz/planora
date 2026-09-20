@@ -1,5 +1,5 @@
-import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { useLocalSearchParams } from 'expo-router';
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { deriveRoadmap } from '@/lib/roadmap';
 import { usePlanData } from '@/lib/usePlanData';
 import { colors } from '@/lib/theme';
@@ -7,6 +7,7 @@ import { colors } from '@/lib/theme';
 export default function Roadmap() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { plan, roadmap, loading } = usePlanData(id);
+  const router = useRouter();
 
   if (loading) {
     return (
@@ -49,6 +50,10 @@ export default function Roadmap() {
           </View>
         ))}
       </View>
+
+      <Pressable style={styles.primary} onPress={() => router.push(`/plan/${id}/availability`)}>
+        <Text style={styles.primaryText}>Mark my availability</Text>
+      </Pressable>
     </ScrollView>
   );
 }
@@ -70,4 +75,6 @@ const styles = StyleSheet.create({
   stepText: { fontSize: 16, fontWeight: '600', color: colors.text, marginTop: -3 },
   stepTextPending: { color: colors.muted, fontWeight: '500' },
   blocker: { fontSize: 13, color: colors.muted, marginTop: 3 },
+  primary: { backgroundColor: colors.accent, borderRadius: 12, paddingVertical: 15, alignItems: 'center', marginTop: 8 },
+  primaryText: { color: '#fff', fontSize: 16, fontWeight: '600' },
 });
