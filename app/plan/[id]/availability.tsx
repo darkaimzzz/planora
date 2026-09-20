@@ -1,8 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
-  ActivityIndicator,
   PanResponder,
-  Pressable,
   ScrollView,
   StyleSheet,
   Text,
@@ -20,7 +18,8 @@ import {
   rowsToCells,
   type Cell,
 } from '@/lib/availability';
-import { colors } from '@/lib/theme';
+import { brand } from '@/lib/theme';
+import { GradientButton, Loader } from '@/components/ui';
 
 const CELL_H = 30;
 const COL_W = 46;
@@ -107,13 +106,7 @@ export default function Availability() {
     router.back();
   }
 
-  if (loading) {
-    return (
-      <View style={styles.center}>
-        <ActivityIndicator color={colors.accent} />
-      </View>
-    );
-  }
+  if (loading) return <Loader />;
 
   return (
     <View style={styles.flex}>
@@ -166,29 +159,22 @@ export default function Availability() {
         </View>
       </ScrollView>
 
-      <Pressable style={[styles.primary, saving && { opacity: 0.6 }]} onPress={save} disabled={saving}>
-        {saving ? (
-          <ActivityIndicator color="#fff" />
-        ) : (
-          <Text style={styles.primaryText}>Save availability</Text>
-        )}
-      </Pressable>
+      <View style={{ padding: 16 }}>
+        <GradientButton label="Save availability" onPress={save} busy={saving} />
+      </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  flex: { flex: 1, backgroundColor: colors.bg },
-  center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  hint: { color: colors.muted, fontSize: 13, padding: 12 },
+  flex: { flex: 1, backgroundColor: brand.bg },
+  hint: { color: brand.inkSoft, fontSize: 13, padding: 14 },
   headerRow: { flexDirection: 'row' },
   headerCell: { alignItems: 'center', paddingBottom: 6 },
-  headerDay: { fontSize: 11, color: colors.muted },
-  headerDate: { fontSize: 13, fontWeight: '700', color: colors.text },
+  headerDay: { fontSize: 11, color: brand.inkSoft },
+  headerDate: { fontSize: 13, fontWeight: '700', color: brand.ink },
   row: { flexDirection: 'row', height: CELL_H, alignItems: 'stretch' },
-  hourLabel: { fontSize: 10, color: colors.muted, textAlign: 'right', paddingRight: 6, marginTop: -5 },
-  cell: { borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border, backgroundColor: colors.bg },
-  cellOn: { backgroundColor: colors.accent },
-  primary: { backgroundColor: colors.accent, margin: 16, borderRadius: 12, paddingVertical: 15, alignItems: 'center' },
-  primaryText: { color: '#fff', fontSize: 16, fontWeight: '600' },
+  hourLabel: { fontSize: 10, color: brand.inkSoft, textAlign: 'right', paddingRight: 6, marginTop: -5 },
+  cell: { borderWidth: StyleSheet.hairlineWidth, borderColor: brand.border, backgroundColor: brand.surface, borderRadius: 3 },
+  cellOn: { backgroundColor: brand.primary, borderColor: brand.primary },
 });

@@ -1,4 +1,4 @@
-project_id = "planbot"
+project_id = "planora"
 
 [functions.advance-plan]
 # Cron hits this with no body, which makes it sweep every overdue poll.

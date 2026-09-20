@@ -1,18 +1,12 @@
 import { useEffect, useRef, useState } from 'react';
-import {
-  FlatList,
-  KeyboardAvoidingView,
-  Platform,
-  Pressable,
-  StyleSheet,
-  Text,
-  TextInput,
-  View,
-} from 'react-native';
+import { FlatList, KeyboardAvoidingView, Platform } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
+import { Input, Text, View } from 'tamagui';
 import { useAuth } from '@/lib/auth';
 import { supabase } from '@/lib/supabase';
-import { colors, initials } from '@/lib/theme';
+import { brand } from '@/lib/theme';
+import { Avatar, Muted, Screen, Tappable } from '@/components/ui';
 
 type Message = {
   id: string;
@@ -77,101 +71,100 @@ export default function Chat() {
 
   return (
     <KeyboardAvoidingView
-      style={styles.flex}
+      style={{ flex: 1, backgroundColor: brand.bg }}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       keyboardVerticalOffset={90}
     >
-      <FlatList
-        ref={listRef}
-        data={messages}
-        keyExtractor={(m) => m.id}
-        contentContainerStyle={styles.list}
-        onContentSizeChange={() => listRef.current?.scrollToEnd({ animated: true })}
-        ListEmptyComponent={<Text style={styles.empty}>No messages yet. Say something.</Text>}
-        renderItem={({ item }) => {
-          // A null author is the AI confirmation message (PRD §6a.3).
-          if (!item.user_id) {
+      <Screen>
+        <FlatList
+          ref={listRef}
+          data={messages}
+          keyExtractor={(m) => m.id}
+          contentContainerStyle={{ padding: 16, gap: 10, flexGrow: 1 }}
+          onContentSizeChange={() => listRef.current?.scrollToEnd({ animated: true })}
+          ListEmptyComponent={
+            <View alignItems="center" paddingVertical={60} gap={8}>
+              <Ionicons name="chatbubbles-outline" size={40} color={brand.border} />
+              <Muted>No messages yet. Say something.</Muted>
+            </View>
+          }
+          renderItem={({ item }) => {
+            // A null author is the AI confirmation message.
+            if (!item.user_id) {
+              return (
+                <View
+                  alignSelf="center"
+                  maxWidth="90%"
+                  backgroundColor={brand.primarySoft}
+                  borderRadius={16}
+                  paddingHorizontal={16}
+                  paddingVertical={12}
+                >
+                  <Text color={brand.primary} fontSize={14} fontWeight="700" textAlign="center">
+                    {item.content}
+                  </Text>
+                </View>
+              );
+            }
+            const mine = item.user_id === session?.user.id;
             return (
-              <View style={styles.systemBubble}>
-                <Text style={styles.systemText}>{item.content}</Text>
+              <View flexDirection="row" gap={8} alignItems="flex-end" justifyContent={mine ? 'flex-end' : 'flex-start'}>
+                {!mine && <Avatar name={item.profiles?.display_name ?? '?'} color={item.profiles?.avatar_color} size={28} />}
+                <View
+                  maxWidth="78%"
+                  backgroundColor={mine ? brand.primary : brand.surface}
+                  borderWidth={mine ? 0 : 1}
+                  borderColor={brand.border}
+                  borderRadius={18}
+                  paddingHorizontal={14}
+                  paddingVertical={10}
+                >
+                  {!mine && <Muted fontSize={11} marginBottom={2}>{item.profiles?.display_name}</Muted>}
+                  <Text fontSize={15} color={mine ? '#fff' : brand.ink}>
+                    {item.content}
+                  </Text>
+                </View>
               </View>
             );
-          }
-          const mine = item.user_id === session?.user.id;
-          return (
-            <View style={[styles.row, mine && styles.rowMine]}>
-              {!mine && (
-                <View style={[styles.avatar, { backgroundColor: item.profiles?.avatar_color ?? colors.muted }]}>
-                  <Text style={styles.avatarText}>{initials(item.profiles?.display_name ?? '?')}</Text>
-                </View>
-              )}
-              <View style={[styles.bubble, mine && styles.bubbleMine]}>
-                {!mine && <Text style={styles.author}>{item.profiles?.display_name}</Text>}
-                <Text style={[styles.text, mine && styles.textMine]}>{item.content}</Text>
-              </View>
-            </View>
-          );
-        }}
-      />
-
-      <View style={styles.composer}>
-        <TextInput
-          style={styles.input}
-          placeholder="Message"
-          placeholderTextColor={colors.muted}
-          value={draft}
-          onChangeText={setDraft}
-          onSubmitEditing={send}
-          returnKeyType="send"
+          }}
         />
-        <Pressable style={styles.send} onPress={send}>
-          <Text style={styles.sendText}>Send</Text>
-        </Pressable>
-      </View>
+
+        <View
+          flexDirection="row"
+          gap={8}
+          padding={12}
+          alignItems="center"
+          borderTopWidth={1}
+          borderTopColor={brand.border}
+          backgroundColor={brand.surface}
+        >
+          <Input
+            flex={1}
+            size="$4"
+            borderRadius={999}
+            backgroundColor={brand.sunken}
+            borderColor={brand.border}
+            focusStyle={{ borderColor: brand.primary }}
+            placeholder="Message"
+            value={draft}
+            onChangeText={setDraft}
+            onSubmitEditing={send}
+            returnKeyType="send"
+          />
+          <Tappable onPress={send}>
+            <View
+              width={42}
+              height={42}
+              borderRadius={21}
+              backgroundColor={brand.primary}
+              alignItems="center"
+              justifyContent="center"
+            >
+              <Ionicons name="arrow-up" size={20} color="#fff" />
+            </View>
+          </Tappable>
+        </View>
+      </Screen>
     </KeyboardAvoidingView>
   );
 }
-
-const styles = StyleSheet.create({
-  flex: { flex: 1, backgroundColor: colors.bg },
-  list: { padding: 16, gap: 10, flexGrow: 1 },
-  empty: { color: colors.muted, textAlign: 'center', marginTop: 40 },
-  row: { flexDirection: 'row', gap: 8, alignItems: 'flex-end' },
-  rowMine: { justifyContent: 'flex-end' },
-  avatar: { width: 28, height: 28, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
-  avatarText: { color: '#fff', fontSize: 12, fontWeight: '700' },
-  bubble: { maxWidth: '78%', backgroundColor: colors.surface, borderRadius: 14, paddingHorizontal: 12, paddingVertical: 9 },
-  bubbleMine: { backgroundColor: colors.accent },
-  author: { fontSize: 11, color: colors.muted, marginBottom: 2 },
-  text: { fontSize: 15, color: colors.text },
-  textMine: { color: '#fff' },
-  systemBubble: {
-    alignSelf: 'center',
-    backgroundColor: '#eef2ff',
-    borderRadius: 12,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    maxWidth: '90%',
-  },
-  systemText: { color: colors.accent, fontSize: 14, textAlign: 'center', fontWeight: '600' },
-  composer: {
-    flexDirection: 'row',
-    gap: 8,
-    padding: 12,
-    borderTopWidth: 1,
-    borderTopColor: colors.border,
-    alignItems: 'center',
-  },
-  input: {
-    flex: 1,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 999,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    fontSize: 15,
-    color: colors.text,
-  },
-  send: { paddingHorizontal: 14, paddingVertical: 10 },
-  sendText: { color: colors.accent, fontWeight: '700', fontSize: 15 },
-});

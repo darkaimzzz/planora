@@ -1,19 +1,13 @@
 import { useState } from 'react';
-import {
-  ActivityIndicator,
-  KeyboardAvoidingView,
-  Platform,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  View,
-} from 'react-native';
+import { KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
 import * as Linking from 'expo-linking';
 import * as WebBrowser from 'expo-web-browser';
+import { LinearGradient } from 'expo-linear-gradient';
+import { MotiView } from 'moti';
+import { Input, Text, View } from 'tamagui';
 import { supabase } from '@/lib/supabase';
-import { colors } from '@/lib/theme';
+import { brand } from '@/lib/theme';
+import { Body, FadeIn, GhostButton, GradientButton, Muted, Screen, Tappable } from '@/components/ui';
 
 WebBrowser.maybeCompleteAuthSession();
 
@@ -96,101 +90,111 @@ export default function SignIn() {
   }
 
   return (
-    <KeyboardAvoidingView
-      style={{ flex: 1, backgroundColor: colors.bg }}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-    >
-      <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
-        <Text style={styles.logo}>PlanBot</Text>
-        <Text style={styles.tagline}>Stop saying "we should hang out sometime".</Text>
+    <Screen>
+      {/* A soft wash behind the top of the screen, so the form isn't floating
+          on flat white. */}
+      <LinearGradient
+        colors={['#ececfb', brand.bg]}
+        style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 360 }}
+      />
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+        <ScrollView contentContainerStyle={{ flexGrow: 1, justifyContent: 'center', padding: 24 }} keyboardShouldPersistTaps="handled">
+          <FadeIn>
+            <View alignItems="center" marginBottom={28} gap={6}>
+              <MotiView
+                from={{ scale: 0.8, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                transition={{ type: 'spring', damping: 14 }}
+              >
+                <LogoMark />
+              </MotiView>
+              <Text fontSize={34} fontWeight="800" color={brand.ink} letterSpacing={-1}>
+                Planora
+              </Text>
+              <Muted fontSize={15} textAlign="center">
+                Stop saying "we should hang out sometime".
+              </Muted>
+            </View>
+          </FadeIn>
 
-        <TextInput
-          style={styles.input}
-          placeholder="Email"
-          placeholderTextColor={colors.muted}
-          autoCapitalize="none"
-          autoComplete="email"
-          keyboardType="email-address"
-          value={email}
-          onChangeText={setEmail}
-        />
-        <TextInput
-          style={styles.input}
-          placeholder="Password"
-          placeholderTextColor={colors.muted}
-          autoCapitalize="none"
-          secureTextEntry
-          value={password}
-          onChangeText={setPassword}
-        />
+          <FadeIn delay={80}>
+            <View gap={12}>
+              <Input
+                size="$5"
+                borderRadius={14}
+                backgroundColor={brand.surface}
+                borderColor={brand.border}
+                focusStyle={{ borderColor: brand.primary }}
+                placeholder="Email"
+                autoCapitalize="none"
+                autoComplete="email"
+                keyboardType="email-address"
+                value={email}
+                onChangeText={setEmail}
+              />
+              <Input
+                size="$5"
+                borderRadius={14}
+                backgroundColor={brand.surface}
+                borderColor={brand.border}
+                focusStyle={{ borderColor: brand.primary }}
+                placeholder="Password"
+                autoCapitalize="none"
+                secureTextEntry
+                value={password}
+                onChangeText={setPassword}
+              />
 
-        {error && <Text style={styles.error}>{error}</Text>}
-        {notice && <Text style={styles.notice}>{notice}</Text>}
+              {error && <Text color={brand.danger} fontSize={14}>{error}</Text>}
+              {notice && <Body>{notice}</Body>}
 
-        <Pressable style={[styles.primary, busy && styles.disabled]} onPress={submit} disabled={busy}>
-          {busy ? (
-            <ActivityIndicator color="#fff" />
-          ) : (
-            <Text style={styles.primaryText}>{mode === 'signup' ? 'Create account' : 'Sign in'}</Text>
-          )}
-        </Pressable>
+              <GradientButton
+                label={mode === 'signup' ? 'Create account' : 'Sign in'}
+                onPress={submit}
+                busy={busy}
+              />
 
-        <View style={styles.dividerRow}>
-          <View style={styles.rule} />
-          <Text style={styles.dividerText}>or</Text>
-          <View style={styles.rule} />
-        </View>
+              <View flexDirection="row" alignItems="center" gap={12} marginVertical={6}>
+                <View flex={1} height={1} backgroundColor={brand.border} />
+                <Muted>or</Muted>
+                <View flex={1} height={1} backgroundColor={brand.border} />
+              </View>
 
-        <Pressable style={[styles.secondary, busy && styles.disabled]} onPress={signInWithGoogle} disabled={busy}>
-          <Text style={styles.secondaryText}>Continue with Google</Text>
-        </Pressable>
+              <GhostButton label="Continue with Google" onPress={signInWithGoogle} disabled={busy} />
 
-        <Pressable onPress={() => setMode(mode === 'signup' ? 'signin' : 'signup')} style={styles.switch}>
-          <Text style={styles.switchText}>
-            {mode === 'signup' ? 'Already have an account? Sign in' : "New here? Create an account"}
-          </Text>
-        </Pressable>
-      </ScrollView>
-    </KeyboardAvoidingView>
+              <Tappable onPress={() => setMode(mode === 'signup' ? 'signin' : 'signup')}>
+                <View alignItems="center" paddingVertical={14}>
+                  <Text color={brand.primary} fontSize={14} fontWeight="600">
+                    {mode === 'signup' ? 'Already have an account? Sign in' : 'New here? Create an account'}
+                  </Text>
+                </View>
+              </Tappable>
+            </View>
+          </FadeIn>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </Screen>
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flexGrow: 1, justifyContent: 'center', padding: 24, gap: 12 },
-  logo: { fontSize: 34, fontWeight: '800', color: colors.text },
-  tagline: { fontSize: 15, color: colors.muted, marginBottom: 20 },
-  input: {
-    borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: colors.surface,
-    borderRadius: 12,
-    paddingHorizontal: 14,
-    paddingVertical: 14,
-    fontSize: 16,
-    color: colors.text,
-  },
-  primary: {
-    backgroundColor: colors.accent,
-    borderRadius: 12,
-    paddingVertical: 16,
-    alignItems: 'center',
-    marginTop: 4,
-  },
-  primaryText: { color: '#fff', fontSize: 16, fontWeight: '600' },
-  secondary: {
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 12,
-    paddingVertical: 16,
-    alignItems: 'center',
-  },
-  secondaryText: { color: colors.text, fontSize: 16, fontWeight: '600' },
-  disabled: { opacity: 0.6 },
-  dividerRow: { flexDirection: 'row', alignItems: 'center', gap: 12, marginVertical: 8 },
-  rule: { flex: 1, height: 1, backgroundColor: colors.border },
-  dividerText: { color: colors.muted, fontSize: 13 },
-  switch: { alignItems: 'center', paddingVertical: 12 },
-  switchText: { color: colors.accent, fontSize: 14 },
-  error: { color: colors.danger, fontSize: 14 },
-  notice: { color: colors.text, fontSize: 14 },
-});
+/** The logo's calendar-with-a-tick, drawn in views so there's no asset to ship. */
+function LogoMark() {
+  return (
+    <View
+      width={64}
+      height={64}
+      borderRadius={18}
+      borderWidth={3}
+      borderColor={brand.primary}
+      alignItems="center"
+      justifyContent="center"
+    >
+      <View position="absolute" top={-7} left={16} width={3} height={12} borderRadius={2} backgroundColor={brand.primary} />
+      <View position="absolute" top={-7} right={16} width={3} height={12} borderRadius={2} backgroundColor={brand.primary} />
+      <View position="absolute" top={13} left={0} right={0} height={3} backgroundColor={brand.primary} />
+      <Text color={brand.primary} fontSize={26} fontWeight="800" marginTop={12}>
+        ✓
+      </Text>
+    </View>
+  );
+}

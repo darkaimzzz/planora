@@ -1,10 +1,14 @@
 import { useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { RefreshControl, ScrollView } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
+import { MotiView } from 'moti';
+import { Text, View } from 'tamagui';
 import { useAuth } from '@/lib/auth';
 import { supabase } from '@/lib/supabase';
 import { advancePlan } from '@/lib/advance';
-import { colors } from '@/lib/theme';
+import { brand } from '@/lib/theme';
+import { Card, FadeIn, GradientButton, Heading, Loader, Muted, Screen, Tappable } from '@/components/ui';
 
 type Poll = {
   id: string;
@@ -89,116 +93,120 @@ export default function Voting() {
         { onConflict: 'poll_id,user_id' },
       );
     await load();
-    // A vote may be the one that resolves the poll.
-    await advancePlan(id!);
+    await advancePlan(id!); // this vote may be the one that resolves the poll
   }
 
-  if (loading) {
-    return (
-      <View style={styles.center}>
-        <ActivityIndicator color={colors.accent} />
-      </View>
-    );
-  }
+  if (loading) return <Loader />;
 
   if (polls.length === 0) {
     return (
-      <View style={styles.center}>
-        <Text style={styles.emptyTitle}>No polls yet</Text>
-        <Text style={styles.empty}>
+      <Screen alignItems="center" justifyContent="center" padding={24} gap={12}>
+        <Ionicons name="hourglass-outline" size={44} color={brand.border} />
+        <Heading>No polls yet</Heading>
+        <Muted textAlign="center" fontSize={15}>
           {myAvailability === 0
             ? 'Mark when you’re free and the time poll opens once everyone has.'
             : 'Waiting for everyone else to mark their availability.'}
-        </Text>
-        <Pressable style={styles.primary} onPress={() => router.push(`/plan/${id}/availability`)}>
-          <Text style={styles.primaryText}>
-            {myAvailability === 0 ? 'Mark availability' : 'Edit my availability'}
-          </Text>
-        </Pressable>
-      </View>
+        </Muted>
+        <GradientButton
+          full={false}
+          label={myAvailability === 0 ? 'Mark availability' : 'Edit my availability'}
+          onPress={() => router.push(`/plan/${id}/availability`)}
+        />
+      </Screen>
     );
   }
 
   return (
-    <ScrollView
-      contentContainerStyle={styles.content}
-      refreshControl={<RefreshControl refreshing={false} onRefresh={load} />}
-    >
-      {polls.map((poll) => {
-        const pollOptions = options.filter((o) => o.poll_id === poll.id);
-        const pollVotes = votes.filter((v) => v.poll_id === poll.id);
-        const mine = pollVotes.find((v) => v.user_id === session?.user.id);
+    <Screen>
+      <ScrollView
+        contentContainerStyle={{ padding: 16, gap: 16 }}
+        refreshControl={<RefreshControl refreshing={false} onRefresh={load} />}
+      >
+        {polls.map((poll, pi) => {
+          const pollOptions = options.filter((o) => o.poll_id === poll.id);
+          const pollVotes = votes.filter((v) => v.poll_id === poll.id);
+          const mine = pollVotes.find((v) => v.user_id === session?.user.id);
 
-        return (
-          <View key={poll.id} style={styles.card}>
-            <View style={styles.cardHead}>
-              <Text style={styles.cardTitle}>{TITLES[poll.poll_type]}</Text>
-              <Text style={[styles.status, poll.status === 'closed' && styles.statusClosed]}>
-                {poll.status === 'closed' ? 'closed' : `${pollVotes.length}/${attendeeCount} voted`}
-              </Text>
-            </View>
-
-            {pollOptions.map((option) => {
-              const count = pollVotes.filter((v) => v.option_id === option.id).length;
-              const pct = pollVotes.length ? (count / pollVotes.length) * 100 : 0;
-              const chosen = mine?.option_id === option.id;
-              const won = poll.winning_option_id === option.id;
-
-              return (
-                <Pressable
-                  key={option.id}
-                  onPress={() => vote(poll, option.id)}
-                  disabled={poll.status === 'closed'}
-                  style={[styles.option, chosen && styles.optionChosen, won && styles.optionWon]}
-                >
-                  <View style={[styles.bar, { width: `${pct}%` }]} />
-                  <View style={styles.optionRow}>
-                    <Text style={styles.optionLabel}>
-                      {option.label}
-                      {won ? '  ✓' : ''}
+          return (
+            <FadeIn key={poll.id} delay={pi * 60}>
+              <Card>
+                <View flexDirection="row" alignItems="center" justifyContent="space-between" gap={8}>
+                  <Heading flex={1}>{TITLES[poll.poll_type]}</Heading>
+                  <View
+                    backgroundColor={poll.status === 'closed' ? brand.primarySoft : brand.sunken}
+                    paddingHorizontal={10}
+                    paddingVertical={4}
+                    borderRadius={999}
+                  >
+                    <Text
+                      fontSize={11}
+                      fontWeight="700"
+                      color={poll.status === 'closed' ? brand.primary : brand.inkSoft}
+                    >
+                      {poll.status === 'closed' ? 'closed' : `${pollVotes.length}/${attendeeCount} voted`}
                     </Text>
-                    <Text style={styles.optionCount}>{count}</Text>
                   </View>
-                </Pressable>
-              );
-            })}
+                </View>
 
-            {poll.status === 'open' && (
-              <Text style={styles.deadline}>
-                Closes {new Date(poll.deadline).toLocaleString()} at the latest
-              </Text>
-            )}
-          </View>
-        );
-      })}
-    </ScrollView>
+                {pollOptions.map((option) => {
+                  const count = pollVotes.filter((v) => v.option_id === option.id).length;
+                  const pct = pollVotes.length ? (count / pollVotes.length) * 100 : 0;
+                  const chosen = mine?.option_id === option.id;
+                  const won = poll.winning_option_id === option.id;
+
+                  return (
+                    <Tappable
+                      key={option.id}
+                      onPress={() => vote(poll, option.id)}
+                      disabled={poll.status === 'closed'}
+                    >
+                      <View
+                        borderWidth={chosen || won ? 2 : 1}
+                        borderColor={chosen || won ? brand.primary : brand.border}
+                        borderRadius={14}
+                        overflow="hidden"
+                        backgroundColor={won ? brand.primarySoft : brand.surface}
+                      >
+                        {/* The bar grows into place rather than snapping. */}
+                        <MotiView
+                          animate={{ width: `${pct}%` }}
+                          transition={{ type: 'timing', duration: 420 }}
+                          style={{
+                            position: 'absolute',
+                            left: 0,
+                            top: 0,
+                            bottom: 0,
+                            backgroundColor: brand.primarySoft,
+                          }}
+                        />
+                        <View flexDirection="row" justifyContent="space-between" padding={14}>
+                          <Text
+                            fontSize={15}
+                            color={brand.ink}
+                            flex={1}
+                            fontWeight={chosen || won ? '700' : '500'}
+                          >
+                            {option.label}
+                            {won ? '  ✓' : ''}
+                          </Text>
+                          <Text fontSize={15} color={brand.inkSoft} fontWeight="700">
+                            {count}
+                          </Text>
+                        </View>
+                      </View>
+                    </Tappable>
+                  );
+                })}
+
+                {poll.status === 'open' && (
+                  <Muted>Closes {new Date(poll.deadline).toLocaleString()} at the latest</Muted>
+                )}
+              </Card>
+            </FadeIn>
+          );
+        })}
+      </ScrollView>
+    </Screen>
   );
 }
-
-const styles = StyleSheet.create({
-  center: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24, gap: 10 },
-  emptyTitle: { fontSize: 18, fontWeight: '700', color: colors.text },
-  empty: { color: colors.muted, textAlign: 'center', fontSize: 15 },
-  content: { padding: 16, gap: 16 },
-  card: { borderWidth: 1, borderColor: colors.border, borderRadius: 14, padding: 14, gap: 8 },
-  cardHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  cardTitle: { fontSize: 16, fontWeight: '700', color: colors.text, flex: 1 },
-  status: { fontSize: 12, color: colors.muted },
-  statusClosed: { color: colors.accent, fontWeight: '600' },
-  option: {
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 10,
-    overflow: 'hidden',
-    backgroundColor: colors.bg,
-  },
-  optionChosen: { borderColor: colors.accent, borderWidth: 2 },
-  optionWon: { borderColor: colors.accent, backgroundColor: '#eef2ff' },
-  bar: { position: 'absolute', left: 0, top: 0, bottom: 0, backgroundColor: '#eef2ff' },
-  optionRow: { flexDirection: 'row', justifyContent: 'space-between', padding: 12 },
-  optionLabel: { fontSize: 15, color: colors.text, flex: 1 },
-  optionCount: { fontSize: 15, color: colors.muted, fontWeight: '600' },
-  deadline: { fontSize: 12, color: colors.muted },
-  primary: { backgroundColor: colors.accent, borderRadius: 12, paddingVertical: 14, paddingHorizontal: 22, marginTop: 8 },
-  primaryText: { color: '#fff', fontWeight: '600', fontSize: 15 },
-});

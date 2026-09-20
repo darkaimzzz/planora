@@ -1,21 +1,16 @@
 import { useState } from 'react';
-import {
-  ActivityIndicator,
-  Pressable,
-  ScrollView,
-  Share,
-  StyleSheet,
-  Text,
-  TextInput,
-  View,
-} from 'react-native';
+import { Linking as RNLinking, ScrollView, Share } from 'react-native';
 import * as Linking from 'expo-linking';
 import { useLocalSearchParams } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
+import { Input, Text, View } from 'tamagui';
 import { useAuth } from '@/lib/auth';
-import { addAttendee, searchProfiles, updatePlanDetails } from '@/lib/planQueries';
+import { addAttendee, searchProfiles, updatePlanDetails, updatePlanLocation } from '@/lib/planQueries';
 import { PLAN_TYPES, type PlanType } from '@/lib/plans';
+import { mapsUrl, placesEnabled, searchPlaces, type PlaceResult } from '@/lib/places';
 import { usePlanData } from '@/lib/usePlanData';
-import { colors, initials } from '@/lib/theme';
+import { brand } from '@/lib/theme';
+import { Avatar, Card, Chip, FadeIn, GradientButton, Heading, Loader, Muted, Screen, Tappable, Title } from '@/components/ui';
 
 type Found = { id: string; display_name: string; avatar_color: string };
 
@@ -29,24 +24,16 @@ export default function Details() {
   const [type, setType] = useState<PlanType>('hangout');
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<Found[]>([]);
-  const [copied, setCopied] = useState(false);
 
-  if (loading || !plan) {
-    return (
-      <View style={styles.center}>
-        <ActivityIndicator color={colors.accent} />
-      </View>
-    );
-  }
+  const [placeQuery, setPlaceQuery] = useState('');
+  const [placeResults, setPlaceResults] = useState<PlaceResult[]>([]);
+  const [editingPlace, setEditingPlace] = useState(false);
+
+  if (loading || !plan) return <Loader />;
 
   const isCreator = plan.created_by === session?.user.id;
   const inviteUrl = Linking.createURL(`/join/${plan.invite_token}`);
-
-  function startEdit() {
-    setTitle(plan!.title);
-    setType(plan!.type as PlanType);
-    setEditing(true);
-  }
+  const mapLink = mapsUrl(plan);
 
   async function saveEdit() {
     await updatePlanDetails(plan!.id, title.trim() || plan!.title, type);
@@ -59,130 +46,212 @@ export default function Details() {
     setResults(await searchProfiles(text, attendees.map((a) => a.user_id)));
   }
 
-  async function invite(userId: string) {
-    await addAttendee(plan!.id, userId);
-    setQuery('');
-    setResults([]);
+  async function runPlaceSearch(text: string) {
+    setPlaceQuery(text);
+    setPlaceResults(await searchPlaces(text));
+  }
+
+  async function choosePlace(place: PlaceResult | null) {
+    await updatePlanLocation(plan!.id, place);
+    setEditingPlace(false);
+    setPlaceQuery('');
+    setPlaceResults([]);
     await reload();
   }
 
   return (
-    <ScrollView contentContainerStyle={styles.content}>
-      {editing ? (
-        <View style={styles.editBox}>
-          <TextInput style={styles.input} value={title} onChangeText={setTitle} maxLength={80} />
-          <View style={styles.typeRow}>
-            {PLAN_TYPES.map((t) => (
-              <Pressable key={t} onPress={() => setType(t)} style={[styles.chip, type === t && styles.chipActive]}>
-                <Text style={[styles.chipText, type === t && styles.chipTextActive]}>{t}</Text>
-              </Pressable>
-            ))}
-          </View>
-          <View style={styles.editActions}>
-            <Pressable onPress={() => setEditing(false)}>
-              <Text style={styles.link}>Cancel</Text>
-            </Pressable>
-            <Pressable onPress={saveEdit}>
-              <Text style={[styles.link, { fontWeight: '700' }]}>Save</Text>
-            </Pressable>
-          </View>
-        </View>
-      ) : (
-        <View>
-          <Text style={styles.title}>{plan.title}</Text>
-          <Text style={styles.sub}>{plan.type}</Text>
-          {isCreator && (
-            <Pressable onPress={startEdit}>
-              <Text style={styles.link}>Edit title & type</Text>
-            </Pressable>
+    <Screen>
+      <ScrollView contentContainerStyle={{ padding: 20, gap: 18, paddingBottom: 40 }}>
+        <FadeIn>
+          {editing ? (
+            <Card gap={12}>
+              <Input
+                size="$5"
+                borderRadius={12}
+                backgroundColor={brand.sunken}
+                borderColor={brand.border}
+                value={title}
+                onChangeText={setTitle}
+                maxLength={80}
+              />
+              <View flexDirection="row" gap={10}>
+                {PLAN_TYPES.map((t) => (
+                  <Chip key={t} label={t} active={type === t} onPress={() => setType(t)} />
+                ))}
+              </View>
+              <View flexDirection="row" justifyContent="flex-end" gap={20}>
+                <Tappable onPress={() => setEditing(false)}>
+                  <Text color={brand.inkSoft} fontSize={15}>Cancel</Text>
+                </Tappable>
+                <Tappable onPress={saveEdit}>
+                  <Text color={brand.primary} fontSize={15} fontWeight="700">Save</Text>
+                </Tappable>
+              </View>
+            </Card>
+          ) : (
+            <View gap={4}>
+              <Title>{plan.title}</Title>
+              <Muted textTransform="capitalize">{plan.type}</Muted>
+              {isCreator && (
+                <Tappable
+                  onPress={() => {
+                    setTitle(plan.title);
+                    setType(plan.type as PlanType);
+                    setEditing(true);
+                  }}
+                >
+                  <Text color={brand.primary} fontSize={14} fontWeight="600" marginTop={4}>
+                    Edit title & type
+                  </Text>
+                </Tappable>
+              )}
+            </View>
           )}
-        </View>
-      )}
+        </FadeIn>
 
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Invite link</Text>
-        <Text style={styles.url} numberOfLines={1}>
-          {inviteUrl}
-        </Text>
-        <Pressable
-          style={styles.primary}
-          onPress={async () => {
-            await Share.share({ message: `Join my plan "${plan.title}" on PlanBot: ${inviteUrl}` });
-            setCopied(true);
-          }}
-        >
-          <Text style={styles.primaryText}>{copied ? 'Shared' : 'Share invite'}</Text>
-        </Pressable>
-      </View>
-
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Add someone on PlanBot</Text>
-        <TextInput
-          style={styles.input}
-          placeholder="Search by name or email"
-          placeholderTextColor={colors.muted}
-          autoCapitalize="none"
-          value={query}
-          onChangeText={runSearch}
-        />
-        {results.map((r) => (
-          <Pressable key={r.id} style={styles.resultRow} onPress={() => invite(r.id)}>
-            <View style={[styles.avatar, { backgroundColor: r.avatar_color }]}>
-              <Text style={styles.avatarText}>{initials(r.display_name)}</Text>
+        {/* ---- Location: set by the creator, not voted on ---- */}
+        <FadeIn delay={60}>
+          <Card>
+            <View flexDirection="row" alignItems="center" gap={8}>
+              <Ionicons name="location-outline" size={18} color={brand.primary} />
+              <Heading>Where</Heading>
             </View>
-            <Text style={styles.name}>{r.display_name}</Text>
-            <Text style={styles.link}>Add</Text>
-          </Pressable>
-        ))}
-      </View>
 
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Going ({attendees.length})</Text>
-        {attendees.map((a) => (
-          <View key={a.user_id} style={styles.resultRow}>
-            <View style={[styles.avatar, { backgroundColor: a.profiles?.avatar_color ?? colors.muted }]}>
-              <Text style={styles.avatarText}>{initials(a.profiles?.display_name ?? '?')}</Text>
-            </View>
-            <Text style={styles.name}>{a.profiles?.display_name ?? 'Someone'}</Text>
-            {a.user_id === plan.created_by && <Text style={styles.badge}>creator</Text>}
-          </View>
-        ))}
-      </View>
-    </ScrollView>
+            {plan.location_name && !editingPlace ? (
+              <View gap={6}>
+                <Text fontSize={16} fontWeight="700" color={brand.ink}>
+                  {plan.location_name}
+                </Text>
+                {plan.location_address && <Muted>{plan.location_address}</Muted>}
+                <View flexDirection="row" gap={18} marginTop={4}>
+                  {mapLink && (
+                    <Tappable onPress={() => RNLinking.openURL(mapLink)}>
+                      <Text color={brand.primary} fontWeight="600" fontSize={14}>Open in Maps</Text>
+                    </Tappable>
+                  )}
+                  {isCreator && (
+                    <Tappable onPress={() => setEditingPlace(true)}>
+                      <Text color={brand.primary} fontWeight="600" fontSize={14}>Change</Text>
+                    </Tappable>
+                  )}
+                </View>
+              </View>
+            ) : isCreator ? (
+              <View gap={10}>
+                <Muted>
+                  {placesEnabled
+                    ? 'Search for a place — the address and map link are saved with the plan.'
+                    : 'Type where you’re meeting. Add a Google Maps key to search real places.'}
+                </Muted>
+                <Input
+                  size="$4"
+                  borderRadius={12}
+                  backgroundColor={brand.sunken}
+                  borderColor={brand.border}
+                  focusStyle={{ borderColor: brand.primary }}
+                  placeholder={placesEnabled ? 'Search a place…' : 'e.g. Dosa Corner'}
+                  value={placeQuery}
+                  onChangeText={runPlaceSearch}
+                />
+
+                {placeResults.map((p) => (
+                  <Tappable key={p.placeId ?? p.name} onPress={() => choosePlace(p)}>
+                    <View paddingVertical={10} borderBottomWidth={1} borderBottomColor={brand.border}>
+                      <Text fontSize={15} fontWeight="600" color={brand.ink}>{p.name}</Text>
+                      {p.address && <Muted>{p.address}</Muted>}
+                    </View>
+                  </Tappable>
+                ))}
+
+                {/* Without a Places key (or if nothing matched) the typed text
+                    is still a perfectly good answer. */}
+                {placeQuery.trim().length > 0 && placeResults.length === 0 && (
+                  <GradientButton
+                    label={`Use "${placeQuery.trim()}"`}
+                    onPress={() => choosePlace({ name: placeQuery.trim(), address: null, placeId: null, lat: null, lng: null })}
+                  />
+                )}
+
+                {editingPlace && (
+                  <Tappable onPress={() => setEditingPlace(false)}>
+                    <Text color={brand.inkSoft} fontSize={14} textAlign="center">Cancel</Text>
+                  </Tappable>
+                )}
+              </View>
+            ) : (
+              <Muted>The organiser hasn't set a place yet.</Muted>
+            )}
+          </Card>
+        </FadeIn>
+
+        {/* ---- Invite ---- */}
+        <FadeIn delay={100}>
+          <Card>
+            <Heading>Invite link</Heading>
+            <Muted numberOfLines={1}>{inviteUrl}</Muted>
+            <GradientButton
+              label="Share invite"
+              onPress={() =>
+                Share.share({ message: `Join my plan "${plan.title}" on Planora: ${inviteUrl}` })
+              }
+            />
+          </Card>
+        </FadeIn>
+
+        {/* ---- People ---- */}
+        <FadeIn delay={140}>
+          <Card>
+            <Heading>Add someone on Planora</Heading>
+            <Input
+              size="$4"
+              borderRadius={12}
+              backgroundColor={brand.sunken}
+              borderColor={brand.border}
+              focusStyle={{ borderColor: brand.primary }}
+              placeholder="Search by name or email"
+              autoCapitalize="none"
+              value={query}
+              onChangeText={runSearch}
+            />
+            {results.map((r) => (
+              <Tappable
+                key={r.id}
+                onPress={async () => {
+                  await addAttendee(plan.id, r.id);
+                  setQuery('');
+                  setResults([]);
+                  await reload();
+                }}
+              >
+                <View flexDirection="row" alignItems="center" gap={12} paddingVertical={8}>
+                  <Avatar name={r.display_name} color={r.avatar_color} />
+                  <Text flex={1} fontSize={15} color={brand.ink}>{r.display_name}</Text>
+                  <Text color={brand.primary} fontWeight="600">Add</Text>
+                </View>
+              </Tappable>
+            ))}
+          </Card>
+        </FadeIn>
+
+        <FadeIn delay={180}>
+          <Card>
+            <Heading>Going ({attendees.length})</Heading>
+            {attendees.map((a) => (
+              <View key={a.user_id} flexDirection="row" alignItems="center" gap={12} paddingVertical={8}>
+                <Avatar name={a.profiles?.display_name ?? '?'} color={a.profiles?.avatar_color} />
+                <Text flex={1} fontSize={15} color={brand.ink}>
+                  {a.profiles?.display_name ?? 'Someone'}
+                </Text>
+                {a.user_id === plan.created_by && (
+                  <View backgroundColor={brand.primarySoft} paddingHorizontal={8} paddingVertical={3} borderRadius={999}>
+                    <Text fontSize={11} fontWeight="700" color={brand.primary}>organiser</Text>
+                  </View>
+                )}
+              </View>
+            ))}
+          </Card>
+        </FadeIn>
+      </ScrollView>
+    </Screen>
   );
 }
-
-const styles = StyleSheet.create({
-  center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  content: { padding: 20, gap: 24, paddingBottom: 40 },
-  title: { fontSize: 24, fontWeight: '800', color: colors.text },
-  sub: { fontSize: 14, color: colors.muted, textTransform: 'capitalize', marginBottom: 6 },
-  section: { gap: 10 },
-  sectionTitle: { fontSize: 15, fontWeight: '700', color: colors.text },
-  url: { fontSize: 13, color: colors.muted },
-  input: {
-    borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: colors.surface,
-    borderRadius: 12,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    fontSize: 15,
-    color: colors.text,
-  },
-  primary: { backgroundColor: colors.accent, borderRadius: 12, paddingVertical: 14, alignItems: 'center' },
-  primaryText: { color: '#fff', fontSize: 15, fontWeight: '600' },
-  resultRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 8 },
-  avatar: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },
-  avatarText: { color: '#fff', fontWeight: '700' },
-  name: { flex: 1, fontSize: 15, color: colors.text },
-  badge: { fontSize: 12, color: colors.muted },
-  link: { color: colors.accent, fontSize: 15 },
-  editBox: { gap: 12 },
-  editActions: { flexDirection: 'row', justifyContent: 'flex-end', gap: 20 },
-  typeRow: { flexDirection: 'row', gap: 10 },
-  chip: { borderWidth: 1, borderColor: colors.border, borderRadius: 999, paddingHorizontal: 14, paddingVertical: 8 },
-  chipActive: { backgroundColor: colors.accent, borderColor: colors.accent },
-  chipText: { color: colors.text, fontSize: 14, textTransform: 'capitalize' },
-  chipTextActive: { color: '#fff', fontWeight: '600' },
-});

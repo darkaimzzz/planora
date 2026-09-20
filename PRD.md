@@ -1,10 +1,10 @@
-# PlanBot — Product Requirements Document (MVP)
+# Planora — Product Requirements Document (MVP)
 
 ## 1. Overview
 
-PlanBot is a mobile app (React Native) that helps groups of friends turn "we should hang out sometime" into an actual confirmed plan, without endless back-and-forth in a group chat. Users create a plan, invite people into it, mark their availability, and every meaningful decision (time, venue, anything else) is resolved by group vote rather than one person deciding. Once decisions are made, the app auto-generates a confirmation message and keeps a running calendar of everyone's plans so people can visually avoid double-booking themselves.
+Planora is a mobile app (React Native) that helps groups of friends turn "we should hang out sometime" into an actual confirmed plan, without endless back-and-forth in a group chat. Users create a plan, invite people into it, mark their availability, and every meaningful decision (time, venue, anything else) is resolved by group vote rather than one person deciding. Once decisions are made, the app auto-generates a confirmation message and keeps a running calendar of everyone's plans so people can visually avoid double-booking themselves.
 
-The differentiator versus existing scheduling tools (When2meet, Doodle, Calendly group polls) is that PlanBot doesn't stop at "here's the best time" — it carries the group all the way through venue selection and confirmation, and it treats every decision point as a vote rather than requiring an organizer to make the call.
+The differentiator versus existing scheduling tools (When2meet, Doodle, Calendly group polls) is that Planora doesn't stop at "here's the best time" — it carries the group all the way through venue selection and confirmation, and it treats every decision point as a vote rather than requiring an organizer to make the call.
 
 ## 2. Goals
 
@@ -20,7 +20,7 @@ The differentiator versus existing scheduling tools (When2meet, Doodle, Calendly
 - No payment splitting or expense tracking.
 - No offline support.
 - No organizer override of votes — the creator can only edit the plan's title/type; every other decision is vote-governed.
-- No cross-platform chat import (WhatsApp/iMessage) — PlanBot's group chat is its own, self-contained.
+- No cross-platform chat import (WhatsApp/iMessage) — Planora's group chat is its own, self-contained.
 
 ## 4. Tech Stack
 
@@ -61,7 +61,7 @@ The differentiator versus existing scheduling tools (When2meet, Doodle, Calendly
 
 ## 7. Core User Flow
 
-1. **Create plan** — any user taps "New Plan," enters a title and a type (dinner / hangout / trip — a simple label used later for venue-suggestion context), and adds attendees either by searching existing PlanBot users or generating a shareable invite link.
+1. **Create plan** — any user taps "New Plan," enters a title and a type (dinner / hangout / trip — a simple label used later for venue-suggestion context), and adds attendees either by searching existing Planora users or generating a shareable invite link.
 2. **Join via invite link** — the link deep-links directly into the app. If the recipient isn't signed up yet, it routes them through sign-up first, then auto-tags them as an attendee of that specific plan once authenticated.
 3. **Availability round** — each attendee opens the plan and marks their availability on a time-slot grid (drag-select across days/times, similar to When2meet).
 4. **Time poll** — once availability is collected, the app computes the top 3 overlapping slots and posts them as a poll in the Voting tab. Attendees vote for their preferred slot.

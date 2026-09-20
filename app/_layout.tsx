@@ -1,10 +1,12 @@
 import { useEffect } from 'react';
-import { ActivityIndicator, View } from 'react-native';
 import { Stack, useRouter, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
+import { TamaguiProvider } from 'tamagui';
 import { AuthProvider, useAuth } from '@/lib/auth';
 import { pendingInvite } from '@/lib/pendingInvite';
-import { colors } from '@/lib/theme';
+import { Loader } from '@/components/ui';
+import { brand } from '@/lib/theme';
+import config from '@/tamagui.config';
 
 /**
  * Sends the user wherever their auth state says they belong:
@@ -34,22 +36,28 @@ function AuthGate() {
     }
   }, [loading, session, profile, segments, router]);
 
-  if (loading) {
-    return (
-      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.bg }}>
-        <ActivityIndicator color={colors.accent} />
-      </View>
-    );
-  }
+  if (loading) return <Loader />;
 
-  return <Stack screenOptions={{ headerShown: false }} />;
+  return (
+    <Stack
+      screenOptions={{
+        headerShown: false,
+        contentStyle: { backgroundColor: brand.bg },
+        animation: 'slide_from_right',
+      }}
+    >
+      <Stack.Screen name="new-plan" options={{ presentation: 'modal', animation: 'slide_from_bottom' }} />
+    </Stack>
+  );
 }
 
 export default function RootLayout() {
   return (
-    <AuthProvider>
-      <StatusBar style="dark" />
-      <AuthGate />
-    </AuthProvider>
+    <TamaguiProvider config={config} defaultTheme="light">
+      <AuthProvider>
+        <StatusBar style="dark" />
+        <AuthGate />
+      </AuthProvider>
+    </TamaguiProvider>
   );
 }

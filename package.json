@@ -1,5 +1,5 @@
 {
-  "name": "planbot",
+  "name": "planora",
   "version": "0.1.0",
   "main": "expo-router/entry",
   "scripts": {
@@ -12,27 +12,36 @@
     "@expo/vector-icons": "^15.0.2",
     "@react-native-async-storage/async-storage": "2.2.0",
     "@supabase/supabase-js": "^2.58.0",
+    "@tamagui/animations-moti": "^2.7.7",
+    "@tamagui/babel-plugin": "^2.7.7",
+    "@tamagui/config": "^2.7.7",
+    "@tamagui/core": "^2.7.7",
     "expo": "~57.0.24",
     "expo-auth-session": "~57.0.12",
     "expo-constants": "~57.0.19",
+    "expo-linear-gradient": "^57.0.2",
     "expo-linking": "~57.0.10",
     "expo-router": "~57.0.22",
     "expo-status-bar": "~57.0.1",
     "expo-web-browser": "~57.0.3",
+    "moti": "^0.30.0",
     "react": "19.2.3",
     "react-dom": "19.2.3",
     "react-native": "0.86.3",
     "react-native-gesture-handler": "~2.32.0",
+    "react-native-reanimated": "4.5.1",
     "react-native-safe-area-context": "~5.7.0",
     "react-native-screens": "~4.26.0",
     "react-native-url-polyfill": "^2.0.0",
-    "react-native-web": "^0.21.2"
+    "react-native-web": "^0.21.2",
+    "tamagui": "^2.7.7"
   },
   "devDependencies": {
+    "@types/node": "^22.10.2",
     "@types/react": "~19.2.2",
+    "babel-preset-expo": "^57.0.12",
     "tsx": "^4.19.2",
-    "typescript": "~6.0.3",
-    "@types/node": "^22.10.2"
+    "typescript": "~6.0.3"
   },
   "private": true
 }

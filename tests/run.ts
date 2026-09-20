@@ -1,6 +1,6 @@
 // Plain assert checks. Run with: npm test
 import assert from 'node:assert/strict';
-import { bucketPlans, type Plan } from '../lib/plans';
+import { bucketPlans, formatSlot, slotDay, type Plan } from '../lib/plans';
 import { deriveRoadmap } from '../lib/roadmap';
 import {
   cellsToRows,
@@ -11,6 +11,7 @@ import {
   type Cell,
 } from '../lib/availability';
 import { monthGrid, plansByDay, weekGrid } from '../lib/calendar';
+import { mapsUrl } from '../lib/places';
 
 function plan(p: Partial<Plan>): Plan {
   return {
@@ -23,6 +24,11 @@ function plan(p: Partial<Plan>): Plan {
     confirmed_start: null,
     confirmed_end: null,
     confirmed_venue: null,
+    location_name: null,
+    location_address: null,
+    location_place_id: null,
+    location_lat: null,
+    location_lng: null,
     created_at: '2026-01-01T00:00:00Z',
     ...p,
   };
@@ -62,7 +68,6 @@ const now = new Date('2026-06-15T12:00:00Z');
     attendeeCount: 5,
     availabilityCount: 3,
     timePoll: null,
-    venuePoll: null,
     confirmed: false,
   });
   assert.equal(fresh[0].state, 'done');
@@ -75,7 +80,6 @@ const now = new Date('2026-06-15T12:00:00Z');
     attendeeCount: 2,
     availabilityCount: 2,
     timePoll: { status: 'open', voteCount: 1 },
-    venuePoll: null,
     confirmed: false,
   });
   assert.equal(voting[1].state, 'done');
@@ -87,17 +91,16 @@ const now = new Date('2026-06-15T12:00:00Z');
     attendeeCount: 2,
     availabilityCount: 2,
     timePoll: { status: 'closed', voteCount: 2 },
-    venuePoll: { status: 'closed', voteCount: 2 },
     confirmed: true,
   });
   assert.ok(done.every((s) => s.state === 'done'), 'a confirmed plan has every stage done');
+  assert.equal(done.length, 4, 'the venue stage is gone: the creator sets the location');
 
   // A plan with no attendees must not read as "availability collected".
   const empty = deriveRoadmap({
     attendeeCount: 0,
     availabilityCount: 0,
     timePoll: null,
-    venuePoll: null,
     confirmed: false,
   });
   assert.equal(empty[1].state, 'current');
@@ -205,6 +208,45 @@ const now = new Date('2026-06-15T12:00:00Z');
   // An evening plan must not slide to the next day via a UTC conversion.
   const late = plan({ status: 'decided', confirmed_start: '2026-06-17T23:30:00' });
   assert.equal([...plansByDay([late]).keys()][0], '2026-06-17');
+}
+
+
+// ------------------------------------------------------------------ maps
+{
+  const base = { location_name: null, location_place_id: null, location_lat: null, location_lng: null };
+  assert.equal(mapsUrl(base), null, 'no location means no link');
+
+  // A real Places result should deep-link by place id, which is unambiguous.
+  const withId = mapsUrl({ ...base, location_name: 'Dosa Corner', location_place_id: 'abc123' })!;
+  assert.match(withId, /query_place_id=abc123/);
+  assert.match(withId, /query=Dosa%20Corner/, 'the name is URL-encoded');
+
+  // Free text (no API key) still produces a usable search link.
+  const freeText = mapsUrl({ ...base, location_name: 'that ramen place & bar' })!;
+  assert.match(freeText, /query=that%20ramen%20place%20%26%20bar/, 'ampersands are encoded, not left raw');
+
+  // Coordinates are used when there is no place id.
+  assert.match(
+    mapsUrl({ ...base, location_name: 'Spot', location_lat: 12.9, location_lng: 77.6 })!,
+    /query=12\.9,77\.6/,
+  );
+}
+
+
+// ------------------------------------------------------- slot wall-clock
+{
+  // A 7pm slot is stored as 19:00Z. It must stay on the 25th and read as 7 pm
+  // no matter what timezone the device is in — east of Greenwich a naive local
+  // conversion pushes it to 00:30 on the 26th.
+  const evening = plan({ status: 'decided', confirmed_start: '2026-09-25T19:00:00+00:00' });
+  assert.equal(slotDay(evening.confirmed_start!), '2026-09-25');
+  assert.match(formatSlot(evening.confirmed_start!), /7 ?[ap]m/i);
+
+  const byDay = plansByDay([evening]);
+  assert.deepEqual([...byDay.keys()], ['2026-09-25'], 'the plan lands on the day it was voted for');
+
+  // Late-evening slot: the one most likely to slip a day.
+  assert.equal(slotDay('2026-09-25T23:00:00+00:00'), '2026-09-25');
 }
 
 console.log('ok');

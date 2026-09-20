@@ -1,5 +1,5 @@
 // Pure calendar layout. No Supabase import — tests load this directly.
-import type { Plan } from './plans';
+import { slotDay, type Plan } from './plans';
 
 export type Day = {
   date: string; // YYYY-MM-DD
@@ -23,7 +23,7 @@ export function plansByDay(plans: Plan[]): Map<string, Plan[]> {
   const map = new Map<string, Plan[]>();
   for (const p of plans) {
     if (!p.confirmed_start) continue;
-    const key = isoDate(new Date(p.confirmed_start));
+    const key = slotDay(p.confirmed_start);
     map.set(key, [...(map.get(key) ?? []), p]);
   }
   return map;

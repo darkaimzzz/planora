@@ -17,6 +17,11 @@ export type Plan = {
   confirmed_start: string | null;
   confirmed_end: string | null;
   confirmed_venue: string | null;
+  location_name: string | null;
+  location_address: string | null;
+  location_place_id: string | null;
+  location_lat: number | null;
+  location_lng: number | null;
   created_at: string;
 };
 
@@ -40,4 +45,28 @@ export function bucketPlans(plans: Plan[], now = new Date()) {
     }
   }
   return { votingOpen, scheduled, past };
+}
+
+/**
+ * Slots are wall-clock times: the hour someone dragged on the grid is the hour
+ * everyone should see, whatever timezone their phone is in. The server builds
+ * them in UTC, so they are read back in UTC rather than converted to local —
+ * otherwise "7 pm" becomes "12:30 am the next day" east of Greenwich.
+ */
+export const SLOT_TZ = 'UTC';
+
+export function formatSlot(iso: string, opts: Intl.DateTimeFormatOptions = {}) {
+  return new Date(iso).toLocaleString(undefined, {
+    weekday: 'short',
+    day: 'numeric',
+    month: 'short',
+    hour: 'numeric',
+    timeZone: SLOT_TZ,
+    ...opts,
+  });
+}
+
+/** The calendar day a slot belongs to, in the same wall-clock terms. */
+export function slotDay(iso: string): string {
+  return new Date(iso).toISOString().slice(0, 10);
 }

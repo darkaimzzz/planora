@@ -4,7 +4,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useAuth } from '@/lib/auth';
 import { joinPlanByToken, previewPlan } from '@/lib/planQueries';
 import { pendingInvite } from '@/lib/pendingInvite';
-import { colors } from '@/lib/theme';
+import { brand } from '@/lib/theme';
 
 type Preview = { id: string; title: string; type: string; attendee_count: number };
 
@@ -67,7 +67,7 @@ export default function JoinPlan() {
 
   return (
     <View style={styles.container}>
-      <ActivityIndicator color={colors.accent} />
+      <ActivityIndicator color={brand.primary} />
       <Text style={styles.title}>{preview ? preview.title : 'Opening invite…'}</Text>
       {preview && (
         <Text style={styles.sub}>
@@ -79,9 +79,9 @@ export default function JoinPlan() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.bg, alignItems: 'center', justifyContent: 'center', padding: 24, gap: 10 },
-  title: { fontSize: 22, fontWeight: '700', color: colors.text, textAlign: 'center' },
-  sub: { fontSize: 15, color: colors.muted, textAlign: 'center' },
-  primary: { backgroundColor: colors.accent, borderRadius: 12, paddingVertical: 14, paddingHorizontal: 24, marginTop: 12 },
+  container: { flex: 1, backgroundColor: brand.bg, alignItems: 'center', justifyContent: 'center', padding: 24, gap: 10 },
+  title: { fontSize: 22, fontWeight: '700', color: brand.ink, textAlign: 'center' },
+  sub: { fontSize: 15, color: brand.inkSoft, textAlign: 'center' },
+  primary: { backgroundColor: brand.primary, borderRadius: 12, paddingVertical: 14, paddingHorizontal: 24, marginTop: 12 },
   primaryText: { color: '#fff', fontWeight: '600', fontSize: 16 },
 });

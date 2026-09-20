@@ -1,8 +1,11 @@
 import { useState } from 'react';
-import { ActivityIndicator, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { LinearGradient } from 'expo-linear-gradient';
+import { Input, Text, View } from 'tamagui';
 import { useAuth } from '@/lib/auth';
 import { supabase } from '@/lib/supabase';
-import { AVATAR_COLORS, colors, initials } from '@/lib/theme';
+import { AVATAR_COLORS, brand } from '@/lib/theme';
+import { Avatar, FadeIn, GradientButton, Muted, Screen, Tappable, Title } from '@/components/ui';
 
 export default function Onboarding() {
   const { session, profile, refreshProfile } = useAuth();
@@ -32,64 +35,57 @@ export default function Onboarding() {
   }
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.heading}>Set up your profile</Text>
-      <Text style={styles.sub}>This is how you'll show up in plans.</Text>
-
-      <View style={[styles.avatar, { backgroundColor: color }]}>
-        <Text style={styles.avatarText}>{initials(name)}</Text>
-      </View>
-
-      <TextInput
-        style={styles.input}
-        placeholder="Display name"
-        placeholderTextColor={colors.muted}
-        value={name}
-        onChangeText={setName}
-        maxLength={40}
+    <Screen>
+      <LinearGradient
+        colors={['#ececfb', brand.bg]}
+        style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 320 }}
       />
+      <SafeAreaView style={{ flex: 1, justifyContent: 'center', padding: 24 }}>
+        <FadeIn>
+          <View gap={16}>
+            <View gap={4}>
+              <Title>Set up your profile</Title>
+              <Muted fontSize={15}>This is how you'll show up in plans.</Muted>
+            </View>
 
-      <Text style={styles.label}>Avatar colour</Text>
-      <View style={styles.swatches}>
-        {AVATAR_COLORS.map((c) => (
-          <Pressable
-            key={c}
-            onPress={() => setColor(c)}
-            style={[styles.swatch, { backgroundColor: c }, color === c && styles.swatchActive]}
-          />
-        ))}
-      </View>
+            <View alignItems="center" paddingVertical={10}>
+              <Avatar name={name} color={color} size={96} />
+            </View>
 
-      {error && <Text style={styles.error}>{error}</Text>}
+            <Input
+              size="$5"
+              borderRadius={14}
+              backgroundColor={brand.surface}
+              borderColor={brand.border}
+              focusStyle={{ borderColor: brand.primary }}
+              placeholder="Display name"
+              value={name}
+              onChangeText={setName}
+              maxLength={40}
+            />
 
-      <Pressable style={[styles.primary, busy && { opacity: 0.6 }]} onPress={save} disabled={busy}>
-        {busy ? <ActivityIndicator color="#fff" /> : <Text style={styles.primaryText}>Continue</Text>}
-      </Pressable>
-    </View>
+            <Muted>Avatar colour</Muted>
+            <View flexDirection="row" flexWrap="wrap" gap={12}>
+              {AVATAR_COLORS.map((c) => (
+                <Tappable key={c} onPress={() => setColor(c)}>
+                  <View
+                    width={44}
+                    height={44}
+                    borderRadius={22}
+                    backgroundColor={c}
+                    borderWidth={color === c ? 3 : 0}
+                    borderColor={brand.ink}
+                  />
+                </Tappable>
+              ))}
+            </View>
+
+            {error && <Text color={brand.danger} fontSize={14}>{error}</Text>}
+
+            <GradientButton label="Continue" onPress={save} busy={busy} />
+          </View>
+        </FadeIn>
+      </SafeAreaView>
+    </Screen>
   );
 }
-
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.bg, padding: 24, justifyContent: 'center', gap: 14 },
-  heading: { fontSize: 28, fontWeight: '800', color: colors.text },
-  sub: { fontSize: 15, color: colors.muted, marginBottom: 8 },
-  avatar: { width: 84, height: 84, borderRadius: 42, alignSelf: 'center', alignItems: 'center', justifyContent: 'center' },
-  avatarText: { color: '#fff', fontSize: 34, fontWeight: '700' },
-  input: {
-    borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: colors.surface,
-    borderRadius: 12,
-    paddingHorizontal: 14,
-    paddingVertical: 14,
-    fontSize: 16,
-    color: colors.text,
-  },
-  label: { fontSize: 13, color: colors.muted, marginTop: 4 },
-  swatches: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
-  swatch: { width: 44, height: 44, borderRadius: 22 },
-  swatchActive: { borderWidth: 3, borderColor: colors.text },
-  primary: { backgroundColor: colors.accent, borderRadius: 12, paddingVertical: 16, alignItems: 'center', marginTop: 12 },
-  primaryText: { color: '#fff', fontSize: 16, fontWeight: '600' },
-  error: { color: colors.danger, fontSize: 14 },
-});

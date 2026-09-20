@@ -1,4 +1,4 @@
-# PlanBot
+# Planora
 
 Group planning app. Friends go from "we should hang out" → confirmed time + venue,
 every decision by vote. Full spec: `PRD.md` — read it before building anything.
@@ -169,3 +169,42 @@ PRD §10. Two real users complete the whole flow end to end. Polish is explicitl
   (venue text and the confirmation are placeholders without it), Google OAuth
   provider config, a cron schedule calling `advance-plan` with no body for the
   24h cap, and a two-phone test of the invite deep link.
+
+- **2026-09-20 — Rebrand to Planora, Tamagui UI, creator-set location.**
+  - Renamed throughout: app name, slug, deep-link scheme (`planora://`), bundle
+    IDs, storage keys, docs. GitHub repo is still `plan`.
+  - **Scope change made by the user, overriding the PRD:** the venue is no
+    longer voted on. The creator sets one location on the plan (Google Places
+    when `EXPO_PUBLIC_GOOGLE_MAPS_API_KEY` is set, free text + maps link
+    otherwise). Only the time is still a vote. This drops the "every decision
+    by vote" differentiator from PRD §1 — recorded here so it isn't mistaken
+    for drift. `0002_location.sql` adds the location columns and lets the
+    freeze trigger allow them; the venue poll is gone from the flow and from
+    the roadmap, which is now four stages.
+  - UI rebuilt on **Tamagui** + Moti + expo-linear-gradient, with a shared kit
+    in `components/ui.tsx` (Screen/Card/GradientButton/Chip/Avatar/FadeIn).
+    Brand palette in `lib/theme.ts` from the logo: indigo `#4f52d1`, navy
+    `#1b2a5e`, warm off-white `#fbfaf8`.
+  - Tamagui config relaxes two v4 defaults (`onlyAllowShorthands: false`,
+    `allowedStyleValues: 'somewhat-strict'`) so React Native longhand props
+    keep working; brand hex values are cast to `ColorTokens` once in
+    `lib/theme.ts` rather than at every call site.
+  - Bugs found by running it, all fixed:
+    - **Confirmation could strand a plan forever.** It ran inside the
+      close-the-poll branch, so an interrupted run left a closed poll on a
+      non-decided plan with nothing to finish it. Confirmation is now its own
+      step and the cron sweep looks for that state too — verified by rescuing a
+      genuinely stuck plan with a no-body sweep.
+    - **Slots drifted a day east of Greenwich.** Availability hours are
+      wall-clock, but were read back in device-local time, so a 7 pm slot
+      showed as 12:30 am the next day in IST and landed on the wrong calendar
+      square. `formatSlot`/`slotDay` in `lib/plans.ts` read them in UTC;
+      regression tests pass under `TZ=Asia/Kolkata` and `TZ=America/Los_Angeles`.
+    - `babel-preset-expo` had to become a direct dependency once a
+      `babel.config.js` existed.
+  - Verified: `npm test` passes (two timezones), `npx tsc --noEmit` clean,
+    `npx expo export` bundles, and the flow was re-run end to end against the
+    real project through the new UI.
+
+  Still needs the user: `ANTHROPIC_API_KEY` as a function secret, the cron
+  schedule, Google Maps key (optional), Google OAuth, two-phone deep-link test.

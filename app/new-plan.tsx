@@ -1,11 +1,12 @@
 import { useState } from 'react';
-import { ActivityIndicator, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
+import { Input, Text, View } from 'tamagui';
 import { useAuth } from '@/lib/auth';
 import { createPlan } from '@/lib/planQueries';
 import { PLAN_TYPES, type PlanType } from '@/lib/plans';
-import { colors } from '@/lib/theme';
+import { brand } from '@/lib/theme';
+import { Chip, FadeIn, GradientButton, Muted, Screen, Tappable, Title } from '@/components/ui';
 
 export default function NewPlan() {
   const { session } = useAuth();
@@ -32,79 +33,50 @@ export default function NewPlan() {
   }
 
   return (
-    <SafeAreaView style={styles.safe}>
-      <View style={styles.content}>
-        <View style={styles.headerRow}>
-          <Text style={styles.title}>New plan</Text>
-          <Pressable onPress={() => router.back()}>
-            <Text style={styles.cancel}>Cancel</Text>
-          </Pressable>
+    <Screen>
+      <SafeAreaView style={{ flex: 1 }}>
+        <View padding={20} gap={16}>
+          <View flexDirection="row" alignItems="center" justifyContent="space-between">
+            <Title>New plan</Title>
+            <Tappable onPress={() => router.back()}>
+              <Text color={brand.primary} fontSize={16} fontWeight="600">Cancel</Text>
+            </Tappable>
+          </View>
+
+          <FadeIn>
+            <View gap={16}>
+              <Input
+                size="$5"
+                borderRadius={14}
+                backgroundColor={brand.surface}
+                borderColor={brand.border}
+                focusStyle={{ borderColor: brand.primary }}
+                placeholder="What's the plan?"
+                value={title}
+                onChangeText={setTitle}
+                maxLength={80}
+                autoFocus
+              />
+
+              <View gap={8}>
+                <Muted>Type</Muted>
+                <View flexDirection="row" gap={10}>
+                  {PLAN_TYPES.map((t) => (
+                    <Chip key={t} label={t} active={type === t} onPress={() => setType(t)} />
+                  ))}
+                </View>
+              </View>
+
+              {error && <Text color={brand.danger} fontSize={14}>{error}</Text>}
+
+              <GradientButton label="Create plan" onPress={submit} busy={busy} />
+              <Muted textAlign="center">
+                You'll set the place and share an invite link on the next screen.
+              </Muted>
+            </View>
+          </FadeIn>
         </View>
-
-        <TextInput
-          style={styles.input}
-          placeholder="What's the plan?"
-          placeholderTextColor={colors.muted}
-          value={title}
-          onChangeText={setTitle}
-          maxLength={80}
-          autoFocus
-        />
-
-        <Text style={styles.label}>Type</Text>
-        <View style={styles.typeRow}>
-          {PLAN_TYPES.map((t) => (
-            <Pressable
-              key={t}
-              onPress={() => setType(t)}
-              style={[styles.typeChip, type === t && styles.typeChipActive]}
-            >
-              <Text style={[styles.typeText, type === t && styles.typeTextActive]}>{t}</Text>
-            </Pressable>
-          ))}
-        </View>
-
-        {error && <Text style={styles.error}>{error}</Text>}
-
-        <Pressable style={[styles.primary, busy && { opacity: 0.6 }]} onPress={submit} disabled={busy}>
-          {busy ? <ActivityIndicator color="#fff" /> : <Text style={styles.primaryText}>Create plan</Text>}
-        </Pressable>
-        <Text style={styles.hint}>You'll get an invite link to share on the next screen.</Text>
-      </View>
-    </SafeAreaView>
+      </SafeAreaView>
+    </Screen>
   );
 }
-
-const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: colors.bg },
-  content: { padding: 20, gap: 14 },
-  headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  title: { fontSize: 26, fontWeight: '800', color: colors.text },
-  cancel: { color: colors.accent, fontSize: 16 },
-  input: {
-    borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: colors.surface,
-    borderRadius: 12,
-    paddingHorizontal: 14,
-    paddingVertical: 14,
-    fontSize: 16,
-    color: colors.text,
-  },
-  label: { fontSize: 13, color: colors.muted },
-  typeRow: { flexDirection: 'row', gap: 10 },
-  typeChip: {
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 999,
-    paddingHorizontal: 16,
-    paddingVertical: 9,
-  },
-  typeChipActive: { backgroundColor: colors.accent, borderColor: colors.accent },
-  typeText: { color: colors.text, fontSize: 14, textTransform: 'capitalize' },
-  typeTextActive: { color: '#fff', fontWeight: '600' },
-  primary: { backgroundColor: colors.accent, borderRadius: 12, paddingVertical: 16, alignItems: 'center', marginTop: 8 },
-  primaryText: { color: '#fff', fontSize: 16, fontWeight: '600' },
-  hint: { color: colors.muted, fontSize: 13, textAlign: 'center' },
-  error: { color: colors.danger, fontSize: 14 },
-});

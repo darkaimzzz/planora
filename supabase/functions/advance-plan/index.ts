@@ -1,7 +1,10 @@
-// The whole vote flow lives here: open the time poll, close polls (Jev early
-// close + 24h hard cap), open the venue poll from Claude's suggestions, and
-// confirm. Called by the client after a vote or an availability save, and by
-// cron so the 24h cap fires with nobody's app open.
+// The whole flow lives here: open the time poll, close it (Jev early close +
+// 24h hard cap), then confirm with the creator's chosen location and post
+// Claude's confirmation message. Called by the client after a vote or an
+// availability save, and by cron so the 24h cap fires with nobody's app open.
+//
+// The venue is deliberately not a poll: the creator sets one location on the
+// plan. Only the time is voted on.
 //
 // It is one idempotent entry point on purpose: every caller just says "this
 // plan may have moved", and the function works out what, if anything, is next.
@@ -68,35 +71,6 @@ async function pollHasResolved(state: {
 }
 
 // ------------------------------------------------------------- Claude
-
-async function suggestVenues(title: string, type: string): Promise<string[]> {
-  if (!anthropic) {
-    // ponytail: placeholder until the key lands, so the flow still completes.
-    return ['Somewhere local', "Organiser's pick", 'A place nearby'];
-  }
-  // One venue per line rather than a JSON schema: the SDK's zod helper has no
-  // resolvable subpath in the edge runtime, and three lines need no schema.
-  const response = await anthropic.messages.create({
-    model: 'claude-opus-5',
-    max_tokens: 400,
-    system:
-      'You suggest places for a group of friends to meet. Reply with exactly three ' +
-      'lines, one venue per line, each formatted "Name — one short reason". ' +
-      'No numbering, no preamble.',
-    messages: [
-      { role: 'user', content: `Suggest three venue options for a ${type} called "${title}".` },
-    ],
-  });
-  const block = response.content.find((b) => b.type === 'text');
-  const text = block && block.type === 'text' ? block.text : '';
-  const lines = text
-    .split('\n')
-    .map((l) => l.replace(/^\s*[-*\d.)]+\s*/, '').trim())
-    .filter(Boolean)
-    .slice(0, 3);
-  if (lines.length < 2) throw new Error('venue suggestions came back unusable');
-  return lines;
-}
 
 async function draftConfirmation(title: string, when: string, venue: string): Promise<string> {
   if (!anthropic) return `It's official — ${title}: ${when} at ${venue}. See you there!`;
@@ -185,7 +159,6 @@ async function step(planId: string): Promise<boolean> {
 
   const { data: polls } = await db.from('polls').select('*').eq('plan_id', planId);
   const timePoll = polls?.find((p) => p.poll_type === 'time');
-  const venuePoll = polls?.find((p) => p.poll_type === 'venue');
 
   // 1. Everyone's availability is in -> open the time poll.
   if (!timePoll) {
@@ -230,58 +203,44 @@ async function step(planId: string): Promise<boolean> {
     return true;
   }
 
-  // 2. Time poll running -> close it if it's resolved, and lock the slot in.
+  // 2. Time poll running -> close it once resolved. Confirmation is step 3, not
+  //    part of this step: if the run dies between the two, the next invocation
+  //    still finishes the job instead of leaving the plan stuck on a closed poll.
   if (timePoll.status === 'open') {
     if (!(await shouldClose(timePoll, attendeeCount))) return false;
-    const winner = await closePoll(timePoll.id);
-    if (winner) {
+    await closePoll(timePoll.id);
+    return true;
+  }
+
+  // 3. Time poll closed but the plan isn't decided -> confirm it. The venue is
+  //    not voted on: the creator sets one location on the plan.
+  {
+    let startsAt: string | null = null;
+    let endsAt: string | null = null;
+    if (timePoll.winning_option_id) {
       const { data: option } = await db
         .from('poll_options')
         .select('starts_at, ends_at')
-        .eq('id', winner.optionId)
+        .eq('id', timePoll.winning_option_id)
         .single();
-      await db
-        .from('plans')
-        .update({ confirmed_start: option?.starts_at, confirmed_end: option?.ends_at })
-        .eq('id', planId);
+      startsAt = option?.starts_at ?? null;
+      endsAt = option?.ends_at ?? null;
     }
-    return true;
-  }
 
-  // 3. Time locked -> Claude proposes venues, group votes.
-  if (!venuePoll) {
-    const labels = await suggestVenues(plan.title, plan.type);
-    const { data: poll } = await db
-      .from('polls')
-      .insert({ plan_id: planId, poll_type: 'venue' })
-      .select()
-      .single();
-    await db.from('poll_options').insert(labels.map((label) => ({ poll_id: poll!.id, label })));
-    return true;
-  }
-
-  // 4. Venue poll running -> close, confirm, and post the message.
-  if (venuePoll.status === 'open') {
-    if (!(await shouldClose(venuePoll, attendeeCount))) return false;
-    const winner = await closePoll(venuePoll.id);
-
-    let venueLabel = 'TBC';
-    if (winner) {
-      const { data: option } = await db
-        .from('poll_options')
-        .select('label')
-        .eq('id', winner.optionId)
-        .single();
-      venueLabel = option?.label ?? venueLabel;
-    }
+    const venueLabel = plan.location_name ?? 'a place to be confirmed';
 
     await db
       .from('plans')
-      .update({ confirmed_venue: venueLabel, status: 'decided' })
+      .update({
+        confirmed_start: startsAt,
+        confirmed_end: endsAt,
+        confirmed_venue: venueLabel,
+        status: 'decided',
+      })
       .eq('id', planId);
 
-    const when = plan.confirmed_start
-      ? new Date(plan.confirmed_start).toLocaleString('en-GB', {
+    const when = startsAt
+      ? new Date(startsAt).toLocaleString('en-GB', {
           weekday: 'long',
           day: 'numeric',
           month: 'short',
@@ -306,26 +265,29 @@ Deno.serve(async (req) => {
   try {
     const body = await req.json().catch(() => ({}));
 
-    // No plan_id: the cron sweep. Only plans with an expired open poll need
-    // looking at — everything else is driven by user action.
-    const planIds: string[] = body.plan_id
-      ? [body.plan_id]
-      : [
-          ...new Set(
-            (
-              await db
-                .from('polls')
-                .select('plan_id')
-                .eq('status', 'open')
-                .lte('deadline', new Date().toISOString())
-            ).data?.map((p) => p.plan_id) ?? [],
-          ),
-        ];
+    // No plan_id: the cron sweep. Two kinds of plan need picking up —
+    // one whose poll has run past its 24h cap, and one left mid-flow by an
+    // interrupted run (poll closed, plan not yet decided).
+    let planIds: string[];
+    if (body.plan_id) {
+      planIds = [body.plan_id];
+    } else {
+      const [overdue, unfinished] = await Promise.all([
+        db.from('polls').select('plan_id').eq('status', 'open').lte('deadline', new Date().toISOString()),
+        db.from('polls').select('plan_id, plans!inner(status)').eq('status', 'closed').neq('plans.status', 'decided'),
+      ]);
+      planIds = [
+        ...new Set([
+          ...(overdue.data?.map((p) => p.plan_id) ?? []),
+          ...(unfinished.data?.map((p) => p.plan_id) ?? []),
+        ]),
+      ];
+    }
 
     for (const planId of planIds) {
-      // Each transition can unlock the next (closing the time poll opens the
-      // venue poll), so keep stepping until the plan settles. Bounded because
-      // there are only four transitions in the whole flow.
+      // Each transition can unlock the next (closing the poll enables the
+      // confirmation), so keep stepping until the plan settles. Bounded
+      // because there are only three transitions in the whole flow.
       for (let i = 0; i < 5 && (await step(planId)); i++);
     }
 

@@ -4,7 +4,6 @@ export const STAGES = [
   'Created',
   'Availability collected',
   'Time voted',
-  'Venue voted',
   'Confirmed',
 ] as const;
 
@@ -16,7 +15,6 @@ export type RoadmapInput = {
   /** Distinct attendees who have saved at least one availability block. */
   availabilityCount: number;
   timePoll: { status: 'open' | 'closed'; voteCount: number } | null;
-  venuePoll: { status: 'open' | 'closed'; voteCount: number } | null;
   confirmed: boolean;
 };
 
@@ -28,22 +26,20 @@ function waiting(done: number, total: number, what: string) {
 }
 
 /**
- * Walks the five stages in order and stops at the first unfinished one, which
+  * Walks the four stages in order and stops at the first unfinished one, which
  * becomes `current` and carries the blocker text. Everything before it is done,
  * everything after is pending.
  */
 export function deriveRoadmap(input: RoadmapInput): RoadmapStep[] {
-  const { attendeeCount, availabilityCount, timePoll, venuePoll, confirmed } = input;
+  const { attendeeCount, availabilityCount, timePoll, confirmed } = input;
 
   const availabilityDone = attendeeCount > 0 && availabilityCount >= attendeeCount;
   const timeDone = timePoll?.status === 'closed';
-  const venueDone = venuePoll?.status === 'closed';
 
   const done: Record<Stage, boolean> = {
     Created: true,
     'Availability collected': availabilityDone,
     'Time voted': timeDone,
-    'Venue voted': venueDone,
     Confirmed: confirmed,
   };
 
@@ -52,9 +48,6 @@ export function deriveRoadmap(input: RoadmapInput): RoadmapStep[] {
     'Time voted': timePoll
       ? waiting(timePoll.voteCount, attendeeCount, 'vote on time')
       : 'time poll opens once everyone has marked availability',
-    'Venue voted': venuePoll
-      ? waiting(venuePoll.voteCount, attendeeCount, 'vote on venue')
-      : 'venue poll opens once the time is locked in',
     Confirmed: 'confirming…',
   };
 

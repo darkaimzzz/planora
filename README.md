@@ -1,8 +1,8 @@
-# PlanBot
+# Planora
 
 Turn "we should hang out sometime" into an actual confirmed plan.
 
-PlanBot is a mobile app for groups of friends. You create a plan, invite people,
+Planora is a mobile app for groups of friends. You create a plan, invite people,
 everyone marks when they're free — and then **every decision is a vote**. Time,
 venue, anything else. No organizer picks for the group, and nobody has override
 power. Once the votes land, the app writes the confirmation message itself and
@@ -11,7 +11,7 @@ drops the plan onto everyone's calendar.
 ## Why not Doodle / When2meet / Calendly?
 
 Those tools stop at *"here's the best time."* Then you're back in the group chat
-arguing about where to go. PlanBot carries the group all the way through venue
+arguing about where to go. Planora carries the group all the way through venue
 selection and confirmation — and treats each step as a vote rather than a poll
 someone has to interpret.
 

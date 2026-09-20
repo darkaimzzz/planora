@@ -84,3 +84,21 @@ export async function previewPlan(token: string) {
   const row = Array.isArray(data) ? data[0] : data;
   return (row ?? null) as { id: string; title: string; type: string; attendee_count: number } | null;
 }
+
+/** Creator-only: set (or clear) the plan's one location. */
+export async function updatePlanLocation(
+  planId: string,
+  place: { name: string; address?: string | null; placeId?: string | null; lat?: number | null; lng?: number | null } | null,
+) {
+  const { error } = await supabase
+    .from('plans')
+    .update({
+      location_name: place?.name ?? null,
+      location_address: place?.address ?? null,
+      location_place_id: place?.placeId ?? null,
+      location_lat: place?.lat ?? null,
+      location_lng: place?.lng ?? null,
+    })
+    .eq('id', planId);
+  if (error) throw error;
+}

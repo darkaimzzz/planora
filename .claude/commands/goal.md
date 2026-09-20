@@ -1,5 +1,5 @@
 ---
-description: Build the next PlanBot milestone end to end (or the one named in $ARGUMENTS)
+description: Build the next Planora milestone end to end (or the one named in $ARGUMENTS)
 ---
 
 Read `CLAUDE.md` and `PRD.md`. They are the spec — the locked decisions table is settled,
