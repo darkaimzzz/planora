@@ -8,7 +8,10 @@
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
-    "ios": { "supportsTablet": true, "bundleIdentifier": "com.darkaimzzz.planbot" },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.darkaimzzz.planbot"
+    },
     "android": {
       "package": "com.darkaimzzz.planbot",
       "adaptiveIcon": {
@@ -19,7 +22,12 @@
       },
       "predictiveBackGestureEnabled": false
     },
-    "web": { "favicon": "./assets/favicon.png" },
-    "plugins": ["expo-router"]
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      "expo-router",
+      "expo-web-browser"
+    ]
   }
 }

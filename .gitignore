@@ -5,3 +5,5 @@ node_modules/
 dist/
 *.log
 .expo-export/
+.playwright-mcp/
+*.png.tmp
