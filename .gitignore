@@ -8,3 +8,4 @@ dist/
 .playwright-mcp/
 *.png.tmp
 .tamagui/
+google-service-account.json
