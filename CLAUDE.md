@@ -57,3 +57,24 @@ Ship each step runnable before starting the next.
 ## Done bar
 
 PRD §10. Two real users complete the whole flow end to end. Polish is explicitly deferred.
+
+## Progress
+
+- **2026-09-20 — Milestone 1+2: schema + scaffold + auth.** Done.
+  - `supabase/migrations/0001_init.sql` — full PRD §8 schema, RLS scoped to plan
+    attendance, `is_attendee()` SECURITY DEFINER helper (avoids policy recursion),
+    invite-token RPCs (`plan_preview`, `join_plan_by_token`), signup and
+    creator-attendee triggers, a trigger freezing every plan column except
+    title/type against client edits, realtime publication.
+  - Expo Router app: `_layout` auth gate, `sign-in` (email/password + Google
+    OAuth), `onboarding` (display name + colour), tabs Home / Plans / Profile.
+  - `lib/plans.ts` is pure (no Supabase import) so `npm test` loads it in node;
+    queries live in `lib/planQueries.ts`.
+  - Verified: `npm test` passes, `npx tsc --noEmit` clean, `npx expo export` bundles.
+  - **Migrations are NOT applied yet** — the project's direct DB host is IPv6-only
+    and this network has no IPv6 route; the pooler rejected every region guessed.
+    Needs the session-mode pooler string from Dashboard → Connect, or
+    `npx supabase login && npx supabase link`.
+
+  Next: plan create + invite link + deep-link join (`app/join/[token].tsx`,
+  which the auth gate already leaves alone).

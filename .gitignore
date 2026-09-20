@@ -4,3 +4,4 @@ node_modules/
 .expo/
 dist/
 *.log
+.expo-export/
