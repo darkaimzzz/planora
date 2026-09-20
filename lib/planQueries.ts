@@ -102,3 +102,29 @@ export async function updatePlanLocation(
     .eq('id', planId);
   if (error) throw error;
 }
+
+/**
+ * Creator-only: put two or three places to a vote. Replaces any existing
+ * options, and the database refuses once anyone has voted.
+ */
+export async function proposeVenues(planId: string, places: PlaceLike[]) {
+  const { error } = await supabase.rpc('propose_venues', {
+    p_plan_id: planId,
+    p_places: places.map((p) => ({
+      name: p.name,
+      address: p.address ?? null,
+      placeId: p.placeId ?? null,
+      lat: p.lat ?? null,
+      lng: p.lng ?? null,
+    })),
+  });
+  if (error) throw error;
+}
+
+export type PlaceLike = {
+  name: string;
+  address?: string | null;
+  placeId?: string | null;
+  lat?: number | null;
+  lng?: number | null;
+};

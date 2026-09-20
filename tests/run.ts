@@ -68,6 +68,8 @@ const now = new Date('2026-06-15T12:00:00Z');
     attendeeCount: 5,
     availabilityCount: 3,
     timePoll: null,
+    venuePoll: null,
+    hasLocation: true,
     confirmed: false,
   });
   assert.equal(fresh[0].state, 'done');
@@ -80,6 +82,8 @@ const now = new Date('2026-06-15T12:00:00Z');
     attendeeCount: 2,
     availabilityCount: 2,
     timePoll: { status: 'open', voteCount: 1 },
+    venuePoll: null,
+    hasLocation: true,
     confirmed: false,
   });
   assert.equal(voting[1].state, 'done');
@@ -91,16 +95,20 @@ const now = new Date('2026-06-15T12:00:00Z');
     attendeeCount: 2,
     availabilityCount: 2,
     timePoll: { status: 'closed', voteCount: 2 },
+    venuePoll: null,
+    hasLocation: true,
     confirmed: true,
   });
   assert.ok(done.every((s) => s.state === 'done'), 'a confirmed plan has every stage done');
-  assert.equal(done.length, 4, 'the venue stage is gone: the creator sets the location');
+  assert.equal(done.length, 5, 'created, availability, time, venue, confirmed');
 
   // A plan with no attendees must not read as "availability collected".
   const empty = deriveRoadmap({
     attendeeCount: 0,
     availabilityCount: 0,
     timePoll: null,
+    venuePoll: null,
+    hasLocation: true,
     confirmed: false,
   });
   assert.equal(empty[1].state, 'current');
@@ -247,6 +255,43 @@ const now = new Date('2026-06-15T12:00:00Z');
 
   // Late-evening slot: the one most likely to slip a day.
   assert.equal(slotDay('2026-09-25T23:00:00+00:00'), '2026-09-25');
+}
+
+
+// ------------------------------------------------- roadmap: venue stage
+{
+  const base = { attendeeCount: 2, availabilityCount: 2, timePoll: { status: 'closed' as const, voteCount: 2 } };
+
+  // Places put to a vote: the venue stage waits on that vote.
+  const voting = deriveRoadmap({
+    ...base,
+    venuePoll: { status: 'open', voteCount: 1 },
+    hasLocation: false,
+    confirmed: false,
+  });
+  assert.equal(voting[3].stage, 'Venue decided');
+  assert.equal(voting[3].state, 'current');
+  assert.match(voting[3].blocker!, /waiting on 1\/2 to vote on the place/);
+
+  // No poll and no location: the organiser is the blocker, not the group.
+  const unproposed = deriveRoadmap({ ...base, venuePoll: null, hasLocation: false, confirmed: false });
+  assert.equal(unproposed[3].state, 'current');
+  assert.match(unproposed[3].blocker!, /organiser to propose places/);
+
+  // No poll but a location is set: nothing to vote on, so the stage is done.
+  const direct = deriveRoadmap({ ...base, venuePoll: null, hasLocation: true, confirmed: false });
+  assert.equal(direct[3].state, 'done');
+  assert.equal(direct[4].state, 'current', 'confirmation is what is left');
+
+  // A closed venue vote also finishes the stage.
+  const voted = deriveRoadmap({
+    ...base,
+    venuePoll: { status: 'closed', voteCount: 2 },
+    hasLocation: true,
+    confirmed: true,
+  });
+  assert.ok(voted.every((s) => s.state === 'done'));
+  assert.equal(voted.length, 5);
 }
 
 console.log('ok');

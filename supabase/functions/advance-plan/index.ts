@@ -159,6 +159,7 @@ async function step(planId: string): Promise<boolean> {
 
   const { data: polls } = await db.from('polls').select('*').eq('plan_id', planId);
   const timePoll = polls?.find((p) => p.poll_type === 'time');
+  const venuePoll = polls?.find((p) => p.poll_type === 'venue');
 
   // 1. Everyone's availability is in -> open the time poll.
   if (!timePoll) {
@@ -208,35 +209,70 @@ async function step(planId: string): Promise<boolean> {
   //    still finishes the job instead of leaving the plan stuck on a closed poll.
   if (timePoll.status === 'open') {
     if (!(await shouldClose(timePoll, attendeeCount))) return false;
-    await closePoll(timePoll.id);
-    return true;
-  }
+    const winner = await closePoll(timePoll.id);
 
-  // 3. Time poll closed but the plan isn't decided -> confirm it. The venue is
-  //    not voted on: the creator sets one location on the plan.
-  {
-    let startsAt: string | null = null;
-    let endsAt: string | null = null;
-    if (timePoll.winning_option_id) {
+    // Write the agreed time straight away rather than at confirmation: the
+    // venue vote may still be running, and "Time voted ✓" with no time shown
+    // anywhere reads like the app lost it.
+    if (winner) {
       const { data: option } = await db
         .from('poll_options')
         .select('starts_at, ends_at')
-        .eq('id', timePoll.winning_option_id)
+        .eq('id', winner.optionId)
         .single();
-      startsAt = option?.starts_at ?? null;
-      endsAt = option?.ends_at ?? null;
+      await db
+        .from('plans')
+        .update({ confirmed_start: option?.starts_at ?? null, confirmed_end: option?.ends_at ?? null })
+        .eq('id', planId);
     }
+    return true;
+  }
 
-    const venueLabel = plan.location_name ?? 'a place to be confirmed';
+  // 3. Time settled -> settle the venue, if it is being voted on.
+  if (venuePoll?.status === 'open') {
+    if (!(await shouldClose(venuePoll, attendeeCount))) return false;
+    const winner = await closePoll(venuePoll.id);
+    if (winner) {
+      // The winning place becomes the plan's location, so the confirmed plan
+      // carries a real address and map link.
+      const { data: option } = await db
+        .from('poll_options')
+        .select('label, place_name, place_address, place_id, place_lat, place_lng')
+        .eq('id', winner.optionId)
+        .single();
+      await db
+        .from('plans')
+        .update({
+          location_name: option?.place_name ?? option?.label ?? null,
+          location_address: option?.place_address ?? null,
+          location_place_id: option?.place_id ?? null,
+          location_lat: option?.place_lat ?? null,
+          location_lng: option?.place_lng ?? null,
+        })
+        .eq('id', planId);
+    }
+    return true;
+  }
+
+  // 4. Time settled and the venue is decided (voted, or set directly by the
+  //    creator when there was nothing to vote on) -> confirm.
+  {
+    // Nothing to confirm with yet: the creator hasn't proposed places or set a
+    // location. The roadmap tells them; the plan waits rather than confirming
+    // somewhere nobody chose.
+    const { data: fresh } = await db
+      .from('plans')
+      .select('location_name, confirmed_start')
+      .eq('id', planId)
+      .single();
+    if (!fresh?.location_name) return false;
+
+    const startsAt = fresh.confirmed_start;
+    const venueLabel = fresh.location_name;
 
     await db
       .from('plans')
-      .update({
-        confirmed_start: startsAt,
-        confirmed_end: endsAt,
-        confirmed_venue: venueLabel,
-        status: 'decided',
-      })
+      .update({ confirmed_venue: venueLabel, status: 'decided' })
       .eq('id', planId);
 
     const when = startsAt

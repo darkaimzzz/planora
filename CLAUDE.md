@@ -208,3 +208,31 @@ PRD §10. Two real users complete the whole flow end to end. Polish is explicitl
 
   Still needs the user: `ANTHROPIC_API_KEY` as a function secret, the cron
   schedule, Google Maps key (optional), Google OAuth, two-phone deep-link test.
+
+- **2026-09-20 — Middle path: the creator proposes places, the group votes.**
+  Restores the vote the previous change removed, keeping the Maps integration.
+  - `0003_venue_proposals.sql`: `poll_options` carries place data
+    (name/address/place_id/lat/lng), and `propose_venues(plan_id, jsonb)` is a
+    SECURITY DEFINER RPC — the one sanctioned way for a client to create a
+    poll. It enforces creator-only, two-or-three options, and refuses to swap
+    options once anyone has voted (silently discarding votes would be worse
+    than an error).
+  - `components/VenueSection.tsx`: search, shortlist up to three, then "Put N
+    places to a vote". Adding exactly one sets the location directly and skips
+    the vote — so a group that already knows where it's going isn't forced
+    through a pointless poll.
+  - Edge Function: after the time poll closes it waits for the venue vote; the
+    winning option's place data is copied onto the plan, so the confirmed plan
+    has a real address and map link. A plan with a single set location and no
+    venue poll confirms as before.
+  - Roadmap is five stages again. "Venue decided" finishes either by a closed
+    venue vote or by a location being set, and names the right blocker — the
+    organiser when nothing has been proposed, the group when a vote is running.
+  - Verified live: **14 assertions, 0 failures** — all three RPC guards
+    (non-creator, one place, four places), option swapping before votes,
+    options locked after votes, the plan refusing to confirm while the venue
+    vote is open, the voted place becoming the location with its address, and
+    the single-location path still confirming.
+  - Fixed while testing: the agreed time was only written at final
+    confirmation, so between the two votes the UI showed "Time voted ✓" with no
+    time anywhere. It is now written the moment the time poll closes.

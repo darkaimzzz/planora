@@ -1,16 +1,16 @@
 import { useState } from 'react';
-import { Linking as RNLinking, ScrollView, Share } from 'react-native';
+import { ScrollView, Share } from 'react-native';
 import * as Linking from 'expo-linking';
 import { useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Input, Text, View } from 'tamagui';
 import { useAuth } from '@/lib/auth';
-import { addAttendee, searchProfiles, updatePlanDetails, updatePlanLocation } from '@/lib/planQueries';
+import { addAttendee, searchProfiles, updatePlanDetails } from '@/lib/planQueries';
 import { PLAN_TYPES, type PlanType } from '@/lib/plans';
-import { mapsUrl, placesEnabled, searchPlaces, type PlaceResult } from '@/lib/places';
 import { usePlanData } from '@/lib/usePlanData';
 import { brand } from '@/lib/theme';
 import { Avatar, Card, Chip, FadeIn, GradientButton, Heading, Loader, Muted, Screen, Tappable, Title } from '@/components/ui';
+import { VenueSection } from '@/components/VenueSection';
 
 type Found = { id: string; display_name: string; avatar_color: string };
 
@@ -25,15 +25,11 @@ export default function Details() {
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<Found[]>([]);
 
-  const [placeQuery, setPlaceQuery] = useState('');
-  const [placeResults, setPlaceResults] = useState<PlaceResult[]>([]);
-  const [editingPlace, setEditingPlace] = useState(false);
 
   if (loading || !plan) return <Loader />;
 
   const isCreator = plan.created_by === session?.user.id;
   const inviteUrl = Linking.createURL(`/join/${plan.invite_token}`);
-  const mapLink = mapsUrl(plan);
 
   async function saveEdit() {
     await updatePlanDetails(plan!.id, title.trim() || plan!.title, type);
@@ -44,19 +40,6 @@ export default function Details() {
   async function runSearch(text: string) {
     setQuery(text);
     setResults(await searchProfiles(text, attendees.map((a) => a.user_id)));
-  }
-
-  async function runPlaceSearch(text: string) {
-    setPlaceQuery(text);
-    setPlaceResults(await searchPlaces(text));
-  }
-
-  async function choosePlace(place: PlaceResult | null) {
-    await updatePlanLocation(plan!.id, place);
-    setEditingPlace(false);
-    setPlaceQuery('');
-    setPlaceResults([]);
-    await reload();
   }
 
   return (
@@ -109,79 +92,8 @@ export default function Details() {
           )}
         </FadeIn>
 
-        {/* ---- Location: set by the creator, not voted on ---- */}
         <FadeIn delay={60}>
-          <Card>
-            <View flexDirection="row" alignItems="center" gap={8}>
-              <Ionicons name="location-outline" size={18} color={brand.primary} />
-              <Heading>Where</Heading>
-            </View>
-
-            {plan.location_name && !editingPlace ? (
-              <View gap={6}>
-                <Text fontSize={16} fontWeight="700" color={brand.ink}>
-                  {plan.location_name}
-                </Text>
-                {plan.location_address && <Muted>{plan.location_address}</Muted>}
-                <View flexDirection="row" gap={18} marginTop={4}>
-                  {mapLink && (
-                    <Tappable onPress={() => RNLinking.openURL(mapLink)}>
-                      <Text color={brand.primary} fontWeight="600" fontSize={14}>Open in Maps</Text>
-                    </Tappable>
-                  )}
-                  {isCreator && (
-                    <Tappable onPress={() => setEditingPlace(true)}>
-                      <Text color={brand.primary} fontWeight="600" fontSize={14}>Change</Text>
-                    </Tappable>
-                  )}
-                </View>
-              </View>
-            ) : isCreator ? (
-              <View gap={10}>
-                <Muted>
-                  {placesEnabled
-                    ? 'Search for a place — the address and map link are saved with the plan.'
-                    : 'Type where you’re meeting. Add a Google Maps key to search real places.'}
-                </Muted>
-                <Input
-                  size="$4"
-                  borderRadius={12}
-                  backgroundColor={brand.sunken}
-                  borderColor={brand.border}
-                  focusStyle={{ borderColor: brand.primary }}
-                  placeholder={placesEnabled ? 'Search a place…' : 'e.g. Dosa Corner'}
-                  value={placeQuery}
-                  onChangeText={runPlaceSearch}
-                />
-
-                {placeResults.map((p) => (
-                  <Tappable key={p.placeId ?? p.name} onPress={() => choosePlace(p)}>
-                    <View paddingVertical={10} borderBottomWidth={1} borderBottomColor={brand.border}>
-                      <Text fontSize={15} fontWeight="600" color={brand.ink}>{p.name}</Text>
-                      {p.address && <Muted>{p.address}</Muted>}
-                    </View>
-                  </Tappable>
-                ))}
-
-                {/* Without a Places key (or if nothing matched) the typed text
-                    is still a perfectly good answer. */}
-                {placeQuery.trim().length > 0 && placeResults.length === 0 && (
-                  <GradientButton
-                    label={`Use "${placeQuery.trim()}"`}
-                    onPress={() => choosePlace({ name: placeQuery.trim(), address: null, placeId: null, lat: null, lng: null })}
-                  />
-                )}
-
-                {editingPlace && (
-                  <Tappable onPress={() => setEditingPlace(false)}>
-                    <Text color={brand.inkSoft} fontSize={14} textAlign="center">Cancel</Text>
-                  </Tappable>
-                )}
-              </View>
-            ) : (
-              <Muted>The organiser hasn't set a place yet.</Muted>
-            )}
-          </Card>
+          <VenueSection plan={plan} isCreator={isCreator} onChanged={reload} />
         </FadeIn>
 
         {/* ---- Invite ---- */}

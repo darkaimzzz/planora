@@ -24,6 +24,7 @@ export function usePlanData(planId: string | undefined): PlanData {
   const [attendees, setAttendees] = useState<Attendee[]>([]);
   const [availabilityCount, setAvailabilityCount] = useState(0);
   const [timePoll, setTimePoll] = useState<PollSummary | null>(null);
+  const [venuePoll, setVenuePoll] = useState<PollSummary | null>(null);
   const [loading, setLoading] = useState(true);
 
   const reload = useCallback(async () => {
@@ -51,6 +52,7 @@ export function usePlanData(planId: string | undefined): PlanData {
       return { id: row.id, status: row.status, voteCount: count ?? 0 };
     };
     setTimePoll(await summarise('time'));
+    setVenuePoll(await summarise('venue'));
     setLoading(false);
   }, [planId]);
 
@@ -79,6 +81,8 @@ export function usePlanData(planId: string | undefined): PlanData {
       attendeeCount: attendees.length,
       availabilityCount,
       timePoll,
+      venuePoll,
+      hasLocation: !!plan?.location_name,
       confirmed: plan?.status === 'decided',
     },
   };
