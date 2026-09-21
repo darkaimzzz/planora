@@ -4,7 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Input, Text, View } from 'tamagui';
 import { advancePlan } from '@/lib/advance';
 import { proposeVenues, updatePlanLocation } from '@/lib/planQueries';
-import { mapsUrl, placesEnabled, searchPlaces, type PlaceResult } from '@/lib/places';
+import { mapsUrl, searchPlaces, type PlaceResult } from '@/lib/places';
 import type { Plan } from '@/lib/plans';
 import { supabase } from '@/lib/supabase';
 import { brand } from '@/lib/theme';
@@ -27,6 +27,9 @@ export function VenueSection({
   const [picking, setPicking] = useState(false);
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<PlaceResult[]>([]);
+  // Optimistic: assume search works until the server says it has no key, so
+  // the field does not flash the fallback wording on every open.
+  const [placesEnabled, setPlacesEnabled] = useState(true);
   const [shortlist, setShortlist] = useState<PlaceResult[]>([]);
   const [venueVoteOpen, setVenueVoteOpen] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -47,7 +50,9 @@ export function VenueSection({
 
   async function runSearch(text: string) {
     setQuery(text);
-    setResults(await searchPlaces(text));
+    const { places, configured } = await searchPlaces(text);
+    setResults(places);
+    setPlacesEnabled(configured);
   }
 
   function addToShortlist(place: PlaceResult) {

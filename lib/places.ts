@@ -1,11 +1,8 @@
-// Google Places lookup for the plan's location.
-//
-// Without EXPO_PUBLIC_GOOGLE_MAPS_API_KEY the app still works: the creator
-// types a place name and it's saved as free text with a maps search link.
-// Set the key and autocomplete with real addresses switches on by itself.
+import { supabase } from './supabase';
 
-export const GOOGLE_MAPS_KEY = process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY;
-export const placesEnabled = !!GOOGLE_MAPS_KEY;
+// Place lookup and map links. Invite-link helpers live in lib/invite.ts.
+
+const PUBLIC_BASE = process.env.EXPO_PUBLIC_APP_URL?.replace(/\/$/, '');
 
 export type PlaceResult = {
   name: string;
@@ -16,43 +13,33 @@ export type PlaceResult = {
 };
 
 /**
- * Places API (New) text search. Returns [] when no key is configured, which is
- * the caller's cue to fall back to a plain text field.
+ * Search for a place.
+ *
+ * Goes through the `places-search` Edge Function rather than calling Google
+ * directly: the API key would otherwise ship inside the app bundle, where it
+ * can be extracted, and Google's web-service APIs can't be restricted per app.
+ *
+ * `configured` is false when the server has no Google key, which is the
+ * caller's cue to offer a plain text field instead of pretending search works.
  */
-export async function searchPlaces(query: string): Promise<PlaceResult[]> {
+export async function searchPlaces(
+  query: string,
+): Promise<{ places: PlaceResult[]; configured: boolean }> {
   const q = query.trim();
-  if (!placesEnabled || q.length < 3) return [];
+  if (q.length < 3) return { places: [], configured: true };
 
   try {
-    const res = await fetch('https://places.googleapis.com/v1/places:searchText', {
-      method: 'POST',
-      headers: {
-        'content-type': 'application/json',
-        'X-Goog-Api-Key': GOOGLE_MAPS_KEY!,
-        'X-Goog-FieldMask':
-          'places.id,places.displayName,places.formattedAddress,places.location',
-      },
-      body: JSON.stringify({ textQuery: q, maxResultCount: 6 }),
+    const { data, error } = await supabase.functions.invoke('places-search', {
+      body: { query: q },
     });
-    if (!res.ok) throw new Error(`places ${res.status}`);
-    const json = (await res.json()) as {
-      places?: {
-        id: string;
-        displayName?: { text: string };
-        formattedAddress?: string;
-        location?: { latitude: number; longitude: number };
-      }[];
+    if (error) throw error;
+    return {
+      places: (data?.places ?? []) as PlaceResult[],
+      configured: data?.configured !== false,
     };
-    return (json.places ?? []).map((p) => ({
-      name: p.displayName?.text ?? 'Unnamed place',
-      address: p.formattedAddress ?? null,
-      placeId: p.id,
-      lat: p.location?.latitude ?? null,
-      lng: p.location?.longitude ?? null,
-    }));
   } catch (err) {
-    console.warn('places lookup failed; falling back to free text', err);
-    return [];
+    console.warn('place search unavailable; falling back to free text', err);
+    return { places: [], configured: false };
   }
 }
 
@@ -74,3 +61,4 @@ export function mapsUrl(plan: {
   }
   return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(plan.location_name)}`;
 }
+

@@ -1,6 +1,7 @@
-// Deploys the advance-plan Edge Function through the Management API.
+// Deploys the Edge Functions through the Management API.
 //
-//   npm run deploy:function
+//   npm run deploy:function              # both
+//   npm run deploy:function places-search # just one
 //
 // This exists because the Supabase CLI needs an interactive `supabase login`
 // and this project's direct database host is IPv6-only. A personal access
@@ -15,31 +16,56 @@ if (!PROJECT) {
   process.exit(1);
 }
 
-const ENTRY = 'supabase/functions/advance-plan/index.ts';
-// The function imports the app's pure slot logic, so that file ships with it —
-// one source of truth for the tie-break across client and server.
-const FILES = [ENTRY, 'lib/availability.ts'];
+const FUNCTIONS = {
+  'advance-plan': {
+    entry: 'supabase/functions/advance-plan/index.ts',
+    // Ships the app's pure slot logic alongside it, so the tie-break can't
+    // drift between client and server.
+    files: ['supabase/functions/advance-plan/index.ts', 'lib/availability.ts'],
+    // Cron calls this with no session, so it can't require a JWT.
+    verifyJwt: false,
+  },
+  'places-search': {
+    entry: 'supabase/functions/places-search/index.ts',
+    files: ['supabase/functions/places-search/index.ts'],
+    // Only signed-in users may spend Google quota.
+    verifyJwt: true,
+  },
+};
 
-const form = new FormData();
-form.append(
-  'metadata',
-  new Blob(
-    [JSON.stringify({ entrypoint_path: ENTRY, name: 'advance-plan', verify_jwt: false })],
-    { type: 'application/json' },
-  ),
-);
-for (const path of FILES) {
-  form.append('file', new Blob([readFileSync(path)], { type: 'application/typescript' }), path);
-}
-
-const res = await fetch(
-  `https://api.supabase.com/v1/projects/${PROJECT}/functions/deploy?slug=advance-plan`,
-  { method: 'POST', headers: { Authorization: `Bearer ${TOKEN}` }, body: form },
-);
-const body = await res.json();
-
-if (!res.ok) {
-  console.error(`Deploy failed (${res.status}):`, body);
+const only = process.argv[2];
+if (only && !FUNCTIONS[only]) {
+  console.error(`Unknown function "${only}". Try: ${Object.keys(FUNCTIONS).join(', ')}`);
   process.exit(1);
 }
-console.log(`Deployed advance-plan v${body.version} — ${body.status}`);
+const slugs = only ? [only] : Object.keys(FUNCTIONS);
+
+for (const slug of slugs) {
+  const fn = FUNCTIONS[slug];
+
+  const form = new FormData();
+  form.append(
+    'metadata',
+    new Blob(
+      [JSON.stringify({ entrypoint_path: fn.entry, name: slug, verify_jwt: fn.verifyJwt })],
+      { type: 'application/json' },
+    ),
+  );
+  for (const path of fn.files) {
+    form.append('file', new Blob([readFileSync(path)], { type: 'application/typescript' }), path);
+  }
+
+  const url = `https://api.supabase.com/v1/projects/${PROJECT}/functions/deploy?slug=${slug}`;
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${TOKEN}` },
+    body: form,
+  });
+  const body = await res.json();
+
+  if (!res.ok) {
+    console.error(`${slug} failed (${res.status}):`, body);
+    process.exit(1);
+  }
+  console.log(`Deployed ${slug} v${body.version} — ${body.status}`);
+}
