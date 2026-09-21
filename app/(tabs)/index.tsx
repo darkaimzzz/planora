@@ -4,6 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Text, View } from 'tamagui';
+import { useAppearance } from '@/lib/appearance';
 import { useAuth } from '@/lib/auth';
 import { bucketPlans, formatSlot, type Plan } from '@/lib/plans';
 import { fetchMyPlans } from '@/lib/planQueries';
@@ -28,6 +29,7 @@ const WEEKDAYS = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
 
 export default function Home() {
   const { profile } = useAuth();
+  const { scheme, setChoice } = useAppearance();
   const router = useRouter();
   const [plans, setPlans] = useState<Plan[]>([]);
   const [refreshing, setRefreshing] = useState(false);
@@ -70,11 +72,37 @@ export default function Home() {
         >
           <FadeIn>
             <View flexDirection="row" alignItems="center" justifyContent="space-between">
-              <View>
+              <View flex={1}>
                 <Muted>Welcome back</Muted>
                 <LargeTitle>{profile?.display_name ?? 'there'}</LargeTitle>
               </View>
-              <Avatar name={profile?.display_name ?? '?'} color={profile?.avatar_color} size={52} />
+
+              {/* The full System/Light/Dark control lives in Profile; this is
+                  the one-tap version, where people actually look for it. */}
+              <View flexDirection="row" alignItems="center" gap={10}>
+                <Tappable
+                  onPress={() => setChoice(scheme === 'dark' ? 'light' : 'dark')}
+                  accessibilityLabel={scheme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+                >
+                  <View
+                    width={40}
+                    height={40}
+                    borderRadius={20}
+                    alignItems="center"
+                    justifyContent="center"
+                    backgroundColor={brand.sunken}
+                    borderWidth={1}
+                    borderColor={brand.border}
+                  >
+                    <Ionicons
+                      name={scheme === 'dark' ? 'sunny' : 'moon'}
+                      size={18}
+                      color={String(brand.inkSoft)}
+                    />
+                  </View>
+                </Tappable>
+                <Avatar name={profile?.display_name ?? '?'} color={profile?.avatar_color} size={52} />
+              </View>
             </View>
           </FadeIn>
 

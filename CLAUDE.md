@@ -447,3 +447,9 @@ PRD §10. Two real users complete the whole flow end to end. Polish is explicitl
   - Still placeholders: Apple Team ID in the AASA, and the Android SHA-256 in
     `assetlinks.json` — the latter only exists after the first EAS Android
     build, so the order is build → `eas credentials` → paste → redeploy.
+
+- **2026-09-21 — One-tap theme toggle on Home.** The System/Light/Dark control
+  in Profile was there but nobody found it, so Home's header now has a
+  sun/moon button beside the avatar that flips straight between light and dark
+  (Profile keeps the three-way control, including "System"). Verified by
+  tapping it in a browser: the icon and the whole screen flip.
