@@ -5,6 +5,8 @@
 //
 // Only accounts on the test domain are touched — a real account with a real
 // email address is never matched.
+import { pathToFileURL } from 'node:url';
+
 import { BASE, SECRET, TEST_DOMAIN } from './env.mjs';
 
 export async function reset({ quiet = false } = {}) {
@@ -32,7 +34,12 @@ export async function reset({ quiet = false } = {}) {
 }
 
 // Only run when invoked directly, not when seed.mjs imports it.
-if (import.meta.url === `file://${process.argv[1].replace(/\\/g, '/')}`) {
+//
+// Built with pathToFileURL rather than string concatenation: on Windows
+// import.meta.url is `file:///C:/…` (three slashes, drive letter) and the
+// hand-rolled version produced `file://C:/…`, so the comparison never matched
+// and `npm run reset` silently did nothing at all.
+if (import.meta.url === pathToFileURL(process.argv[1]).href) {
   reset().catch((err) => {
     console.error(err.message);
     process.exit(1);

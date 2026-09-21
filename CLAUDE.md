@@ -704,3 +704,13 @@ PRD §10. Two real users complete the whole flow end to end. Polish is explicitl
     full stop. Scoped to `li > div > b`.
   - `scroll-margin-top` on sections so the nav's anchor links don't park a
     heading under the sticky bar.
+
+- **2026-09-22 — `npm run reset` had never worked on Windows.** The
+  direct-invocation guard compared `import.meta.url` against
+  `` `file://${process.argv[1].replace(/\/g,'/')}` ``, which on Windows gives
+  `file://C:/…` while Node produces `file:///C:/…` — three slashes. The
+  comparison never matched, so running the script did nothing and exited 0,
+  reporting success. `seed` was unaffected because it imports `reset()`
+  directly. Now built with `pathToFileURL(process.argv[1]).href`.
+  Confirmed by running it: removed both `@planora.test` accounts and left the
+  real account and its three plans alone.
