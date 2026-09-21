@@ -74,6 +74,19 @@ Sign in with either seeded account — both use `Password123!`:
 Open the two in separate browser profiles to be both people at once and watch
 votes and chat update live.
 
+### Checks
+
+```bash
+npm run check    # typecheck + pure-logic assertions (runs in three timezones)
+npm run audit    # 42 assertions against the live project, from the attacker's side
+```
+
+`npm run audit` is the one that matters before shipping. It probes every RLS
+boundary from the wrong side, replays each defect from the hardening pass, and
+fires eight concurrent state-machine calls at one plan to check the database
+still only lets one poll exist. Its fixtures are isolated `@planora.test`
+accounts and it deletes them afterwards.
+
 ### Scripts
 
 | Command | What it does |
@@ -105,18 +118,29 @@ the rest stay on your machine and in Supabase.
 | `ANTHROPIC_API_KEY` | an Edge Function secret, not here |
 | `GOOGLE_MAPS_API_KEY` | an Edge Function secret too, and entirely optional — search already works via OpenStreetMap |
 
-### The landing page
+### The website, and shipping a release
 
-Planora is a native app; there is no web version. But an invite link has to be
-an `https://` URL a friend can tap, so `landing/` is a static page — no build
-step, no app code — that shows which plan you were invited to and hands off to
-the app. It also serves the Apple and Android association files that let the
-link open the app directly instead of the browser.
+**There is no app store.** Planora is an Android APK downloaded straight from
+[planorafun.vercel.app](https://planorafun.vercel.app) — which is also where
+invite links land, and where the privacy policy lives. `landing/` is a static
+site: no build step, no app code, no framework.
 
-Vercel deploys `landing/` with no build step (see `vercel.json`). Before
-launch, fill in the store URLs in `landing/join.html`, and replace the
-placeholders in `landing/.well-known/` and `app.json` with your Apple Team ID,
-your domain, and the Android signing fingerprint from `eas credentials`.
+Releasing a version:
+
+```bash
+npm run build:apk    # EAS, `apk` profile: an installable APK, not an .aab
+npm run release      # download it, checksum it, write release.json + assetlinks
+npx vercel deploy --prod
+```
+
+`npm run release` writes `landing/release.json` — version, size, date and
+SHA-256 — which the site reads at runtime and the app checks to offer an
+update. That is the whole release process; the page itself never needs
+editing. The APK is gitignored and uploaded from disk at deploy time, so a
+~60 MB binary never lands in the repository.
+
+An iOS build would still need App Store review; the Apple Team ID in
+`landing/.well-known/apple-app-site-association` is a placeholder until then.
 
 ### Database
 
