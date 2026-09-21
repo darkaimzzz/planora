@@ -10,3 +10,6 @@ dist/
 .tamagui/
 google-service-account.json
 dist/
+
+.vercel
+.env*

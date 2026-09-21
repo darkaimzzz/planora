@@ -424,3 +424,26 @@ PRD §10. Two real users complete the whole flow end to end. Polish is explicitl
   - Verified locally against the real database: a valid token renders
     "Badminton on Thursday · 2 going" with the right deep link; an invalid one
     renders the expired state. Native bundle still exports.
+
+- **2026-09-21 — Landing page live, Maps key moved server-side.**
+  - Deployed to **https://planora-olive-delta.vercel.app** from `landing/`,
+    no build step. `/join/<token>` renders the real plan title from the live
+    database; an unknown token renders the expired state. Both verified in a
+    browser against production, not just by status code.
+  - `cleanUrls` had to go: it rewrites `/join.html` away, which made the
+    rewrite's own destination a 404.
+  - `app.json` (`associatedDomains`, Android intent filter), `.env.local`
+    (`EXPO_PUBLIC_APP_URL`) and Supabase (`site_url`, allow-list) all point at
+    that domain now.
+  - **Place search no longer uses an `EXPO_PUBLIC_` key.** A key in the bundle
+    can be extracted and Google's web-service APIs can't be restricted per app,
+    so it lives as a `GOOGLE_MAPS_API_KEY` secret behind the `places-search`
+    Edge Function. Until that secret exists the function answers
+    `configured: false` and the UI falls back to a plain text field.
+  - **`verify_jwt` does not mean "signed in".** The publishable key satisfies
+    it, and that key ships in the app bundle and the landing page. The function
+    resolves the caller to a real user itself; verified publishable-key-only
+    → 401, user token → 200.
+  - Still placeholders: Apple Team ID in the AASA, and the Android SHA-256 in
+    `assetlinks.json` — the latter only exists after the first EAS Android
+    build, so the order is build → `eas credentials` → paste → redeploy.

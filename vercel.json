@@ -3,16 +3,30 @@
   "outputDirectory": "landing",
   "installCommand": null,
   "framework": null,
-  "cleanUrls": true,
-  "rewrites": [{ "source": "/join/:token", "destination": "/join.html" }],
+  "rewrites": [
+    {
+      "source": "/join/:token",
+      "destination": "/join.html"
+    }
+  ],
   "headers": [
     {
       "source": "/.well-known/apple-app-site-association",
-      "headers": [{ "key": "Content-Type", "value": "application/json" }]
+      "headers": [
+        {
+          "key": "Content-Type",
+          "value": "application/json"
+        }
+      ]
     },
     {
       "source": "/.well-known/assetlinks.json",
-      "headers": [{ "key": "Content-Type", "value": "application/json" }]
+      "headers": [
+        {
+          "key": "Content-Type",
+          "value": "application/json"
+        }
+      ]
     }
   ]
 }

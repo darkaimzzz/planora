@@ -15,7 +15,7 @@
         "usesNonExemptEncryption": false
       },
       "associatedDomains": [
-        "applinks:REPLACE_WITH_YOUR_DOMAIN"
+        "applinks:planora-olive-delta.vercel.app"
       ]
     },
     "android": {
@@ -34,7 +34,7 @@
           "data": [
             {
               "scheme": "https",
-              "host": "REPLACE_WITH_YOUR_DOMAIN",
+              "host": "planora-olive-delta.vercel.app",
               "pathPrefix": "/join"
             }
           ],
