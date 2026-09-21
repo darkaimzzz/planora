@@ -1,10 +1,10 @@
 {
   "version": "1.0.0",
   "build": "1",
-  "size": "97.0 MB",
-  "bytes": 101727564,
+  "size": "56.8 MB",
+  "bytes": 59564601,
   "minAndroid": "7.0",
   "released": "2026-09-21",
-  "sha256": "49afbc102893ca953dfad3b5ee9f440f1417375163c2e11b162db3b4d0c6e8cf",
-  "signingCertSha256": null
+  "sha256": "5d4f26f1544640f368936de5da8b401b00622623234ee8a46567147cf0d2be71",
+  "signingCertSha256": "9F:05:2B:15:8F:A6:20:0D:CE:9B:1F:C1:CF:86:D5:41:66:76:B0:4D:5A:C1:6B:C2:C4:5D:AC:93:63:62:B8:DD"
 }

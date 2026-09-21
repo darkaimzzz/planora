@@ -1,10 +1,14 @@
 [
   {
-    "relation": ["delegate_permission/common.handle_all_urls"],
+    "relation": [
+      "delegate_permission/common.handle_all_urls"
+    ],
     "target": {
       "namespace": "android_app",
       "package_name": "com.darkaimzzz.planora",
-      "sha256_cert_fingerprints": ["REPLACE_WITH_SHA256_FROM_EAS_CREDENTIALS"]
+      "sha256_cert_fingerprints": [
+        "9F:05:2B:15:8F:A6:20:0D:CE:9B:1F:C1:CF:86:D5:41:66:76:B0:4D:5A:C1:6B:C2:C4:5D:AC:93:63:62:B8:DD"
+      ]
     }
   }
 ]

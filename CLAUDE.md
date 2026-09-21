@@ -669,3 +669,38 @@ PRD §10. Two real users complete the whole flow end to end. Polish is explicitl
     no install telemetry, and no automatic updates.
   - `join.html` points at the download page instead of dead store links, and
     says something honest on iOS rather than showing a button that does nothing.
+
+- **2026-09-22 — v1.0.0 is downloadable.** `planorafun.vercel.app` serves a real
+  APK, verified by downloading it back off the live URL and comparing bytes.
+  - **97.0 MB → 56.8 MB (41% smaller).** A universal APK carries native
+    libraries for all four ABIs, and two of them — `x86`, `x86_64` — exist only
+    for emulators. `gradleCommand: ':app:assembleRelease
+    -PreactNativeArchitectures=arm64-v8a,armeabi-v7a'` in the `apk` profile
+    drops them; confirmed by listing the `lib/` entries in the shipped zip.
+    R8/ProGuard would shave more but can break React Native through reflection,
+    and there is no device here to prove otherwise — that waits for a real
+    install.
+  - **EAS signs v2/v3 only**, so there is no `META-INF/*.RSA` in the APK and
+    the fingerprint could not be read out of it. `release.mjs` now asks the
+    Expo GraphQL API for the keystore's `sha256CertificateFingerprint` and
+    formats it colon-separated, with the APK scan kept as a fallback. Without
+    this, `assetlinks.json` stayed a placeholder and Android App Links never
+    verified.
+  - First build 26 min (7 queued, 19 compiling, 260/260 cache misses); the
+    second 11 min with a warm cache.
+  - Live checks: `Content-Type: application/vnd.android.package-archive`,
+    byte count and SHA-256 both match `release.json`, zip magic intact,
+    `assetlinks.json` served as `application/json`.
+
+- **2026-09-22 — The site's spacing was a specificity bug, not taste.**
+  `.wrap { padding: 0 24px }` and `section { padding: 66px 0 }` fought over the
+  same shorthand, and a class beats an element selector — so **every section's
+  vertical padding computed to 0** and the whole page ran together. The two
+  rules now own separate axes: `.wrap` sets `padding-inline`, `section` sets
+  `padding-block`. Worth remembering whenever a layout looks "cramped for no
+  reason": check the computed value before touching the design.
+  - Same class of bug: `ol.steps b { display: block }` caught a `<b>` used
+    mid-sentence, pushing "Download anyway" onto its own line and orphaning the
+    full stop. Scoped to `li > div > b`.
+  - `scroll-margin-top` on sections so the nav's anchor links don't park a
+    heading under the sticky bar.
