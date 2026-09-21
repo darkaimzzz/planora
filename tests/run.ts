@@ -12,6 +12,7 @@ import {
   type Cell,
 } from '../lib/availability';
 import { monthGrid, plansByDay, weekGrid } from '../lib/calendar';
+import { isNewer } from '../lib/updates';
 
 function plan(p: Partial<Plan>): Plan {
   return {
@@ -126,11 +127,37 @@ const now = new Date('2026-06-15T12:00:00Z');
     ]
   ) as AvailabilityRow[];
 
-  const top = topSlots(rows, 3);
+  // "now" is injected so the fixture keeps meaning the same thing forever.
+  const before = new Date('2026-09-21T00:00:00Z');
+  const top = topSlots(rows, 3, before);
   assert.equal(top[0].availabilityCount, 2, 'the best slot is the one both are free for');
   assert.equal(top[0].hour, 19, 'earliest of the two equally-popular hours wins');
   assert.equal(top[1].hour, 20);
   assert.equal(top.length, 3);
+
+  // A slot that has already started is never offered: a stale client can post
+  // availability for the past, and a poll offering it is unwinnable.
+  assert.equal(
+    topSlots(rows, 3, new Date('2026-09-23T00:00:00Z')).length,
+    0,
+    'every slot is behind us',
+  );
+  const midway = topSlots(rows, 3, new Date('2026-09-21T20:00:00Z'));
+  assert.deepEqual(
+    midway.map((s) => `${s.day}|${s.hour}`),
+    ['2026-09-21|20', '2026-09-22|10'],
+    'the hour in progress still counts; the ones behind it do not',
+  );
+  // The hour is unpadded in a cell key, so "|9" must not sort after "|10".
+  assert.equal(
+    topSlots(
+      [{ user_id: 'a', day: '2026-09-21', start_time: '09:00:00', end_time: '10:00:00' }] as AvailabilityRow[],
+      3,
+      new Date('2026-09-21T10:00:00Z'),
+    ).length,
+    0,
+    '9am is past at 10am',
+  );
 
   // Round-tripping a selection must not change it, and contiguous hours
   // collapse into a single row rather than one row per hour.
@@ -335,3 +362,13 @@ const now = new Date('2026-06-15T12:00:00Z');
 }
 
 console.log('ok');
+
+// ------------------------------------------------------ update comparison
+{
+  // No store means the app compares its own version against the release file.
+  assert.equal(isNewer('1.1.0', '1.0.0'), true);
+  assert.equal(isNewer('1.10.0', '1.9.0'), true, 'ten is after nine, not before it');
+  assert.equal(isNewer('1.0.0', '1.0.0'), false, 'the same version is not an update');
+  assert.equal(isNewer('0.9.9', '1.0.0'), false, 'never offer a downgrade');
+  assert.equal(isNewer('1.0.1', '1.0'), true, 'a shorter current version still compares');
+}

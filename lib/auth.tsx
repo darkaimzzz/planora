@@ -4,14 +4,15 @@ import { supabase } from './supabase';
 
 export type Profile = {
   id: string;
-  email: string;
   display_name: string;
   avatar_color: string;
   auth_provider: 'password' | 'google';
   onboarded: boolean;
 };
 
-const PROFILE_COLUMNS = 'id, email, display_name, avatar_color, auth_provider, onboarded';
+// No email here. Other people's addresses stopped being readable in 0007, and
+// your own comes off the session, which already carries it.
+const PROFILE_COLUMNS = 'id, display_name, avatar_color, auth_provider, onboarded';
 
 type AuthState = {
   session: Session | null;

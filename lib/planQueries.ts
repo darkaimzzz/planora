@@ -49,21 +49,21 @@ export async function fetchAttendees(planId: string): Promise<Attendee[]> {
   return (data ?? []) as unknown as Attendee[];
 }
 
-/** Search people to invite, by display name or email. */
+/**
+ * Search people to invite, by display name or email.
+ *
+ * Goes through an RPC rather than selecting from profiles: the match still
+ * runs against the email column, but no address ever leaves the database.
+ * Reading emails from the client was how every address in the app could be
+ * dumped in one request (0007).
+ */
 export async function searchProfiles(query: string, excludeIds: string[]) {
   const q = query.trim();
   if (q.length < 2) return [];
-  const { data, error } = await supabase
-    .from('profiles')
-    .select('id, display_name, avatar_color')
-    .or(`display_name.ilike.%${q}%,email.ilike.%${q}%`)
-    .limit(10);
+  const { data, error } = await supabase.rpc('search_people', { p_query: q });
   if (error) throw error;
-  return (data ?? []).filter((p) => !excludeIds.includes(p.id)) as {
-    id: string;
-    display_name: string;
-    avatar_color: string;
-  }[];
+  const rows = (data ?? []) as { id: string; display_name: string; avatar_color: string }[];
+  return rows.filter((p) => !excludeIds.includes(p.id));
 }
 
 export async function addAttendee(planId: string, userId: string) {

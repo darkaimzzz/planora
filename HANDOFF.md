@@ -71,11 +71,13 @@ simulator.
 
 Everything below was run against the live Supabase project, not mocked:
 
-- **34 assertions** on schema and RLS, probing every boundary from the wrong
-  side: a non-attendee can't read a plan, vote, post, or write availability as
-  someone else; the creator can't force `status`; no client can create a poll.
-- **14 assertions** on the venue proposal RPC and its guards.
-- **12 assertions** on account deletion.
+- **`npm run audit` — 42 assertions**, all from the attacker's side, and the
+  thing to run first. It covers every defect found in the 2026-09-22 hardening
+  pass plus the full happy path, and it is the regression net: if a policy
+  loosens, it fails. Fixtures are isolated `@planora.test` accounts, deleted
+  afterwards.
+- Earlier one-off passes: 34 assertions on schema and RLS, 14 on the venue
+  proposal RPC, 12 on account deletion. `npm run audit` supersedes them.
 - The **full flow end to end in a browser**, repeatedly: create → search real
   places → shortlist → vote → drag availability → save → time poll → vote →
   confirm → chat message → calendar.
@@ -100,6 +102,24 @@ Everything below was run against the live Supabase project, not mocked:
    nobody learns a poll opened, which is the biggest gap between "works" and
    "people use it".
 
+## The mistake this codebase keeps making
+
+Read this before reviewing any SQL. Three separate defects came from the same
+two facts, and a fourth is waiting for whoever forgets them:
+
+1. **`auth.uid()` is NULL for an anonymous caller, and `x <> NULL` is NULL, not
+   TRUE.** A guard written as `if creator <> auth.uid() then raise` therefore
+   lets anonymous callers straight through. That was a pre-auth hole in
+   `propose_venues` for two weeks. Every authorisation check must reject a NULL
+   uid explicitly, first.
+2. **Supabase's default privileges grant EXECUTE to `anon` on every new
+   function in `public`.** Naming `authenticated` in a `grant` does not keep
+   anyone out, and `revoke … from public` does not remove the explicit grant to
+   `anon`. Both must be revoked by name. `0008` also sets `alter default
+   privileges … revoke execute … from anon` so this doesn't come back.
+
+`npm run audit` asserts both from the outside.
+
 ## Known weak points worth your attention
 
 - **`advance-plan` is a public endpoint** (`verify_jwt: false`, because cron
@@ -109,6 +129,9 @@ Everything below was run against the live Supabase project, not mocked:
 - **`verify_jwt` does not mean "signed in."** The publishable key satisfies it,
   and that key ships in the app bundle and the landing page. `places-search`
   resolves the caller to a real user itself; anything new must do the same.
+- **Distribution is a bare APK from our own domain.** No store review, no
+  auto-update, and the signing keystore lives in EAS. Losing that keystore
+  means no existing install can ever be upgraded in place.
 - **The palette is a mutable module object** (`lib/theme.ts`). ~200 call sites
   read `brand.x` directly and `AppearanceProvider` swaps its contents for dark
   mode. This works only because nothing captures a colour at module load —
@@ -153,8 +176,21 @@ file in order into the dashboard SQL editor. The CLI is **not** linked here —
 the project's direct DB host is IPv6-only and this machine has no IPv6 route,
 so everything was done through the Management API.
 
-Landing page: `npx vercel deploy --prod` (config in `vercel.json`, serves
-`landing/` with no build step).
+Shipping a version of the app — there is no app store, so this is the whole
+release process:
+
+```bash
+npm run build:apk    # EAS, `apk` profile: a plain installable APK, not an .aab
+npm run release      # download the artifact, checksum it, write release.json
+npx vercel deploy --prod
+```
+
+`npm run release` also writes `.well-known/assetlinks.json` from the signing
+fingerprint it reads out of the APK's own v1 signature block (there is no
+keytool on this machine). The APK is **gitignored** and uploaded from disk at
+deploy time, so a ~60 MB binary never enters the repository.
+`landing/release.json` is the single source of truth for the version, size,
+date and checksum shown on the site — and for the in-app update banner.
 
 ## Secrets
 
@@ -166,17 +202,25 @@ Supabase secret key, and the first personal access token.
 never app variables — an `EXPO_PUBLIC_` key ships inside the bundle where it
 can be extracted, and Google's web-service APIs can't be restricted per app.
 
-## Before release
+## Distribution
 
-Blocking both stores: an app icon (still the Expo default), a privacy policy
-URL, screenshots. iOS additionally needs **Sign in with Apple** (guideline 4.8,
-triggered by offering Google login) — not built. Play needs $25, identity
-verification, and for a personal account **12 testers × 14 days** of closed
-testing before production access.
+**There is no app store.** Android users download the APK from
+`planorafun.vercel.app`; the icon, privacy policy and release pipeline are all
+in place, so shipping is `build:apk` → `release` → `deploy`.
 
-Placeholders still to fill: Apple Team ID in
-`landing/.well-known/apple-app-site-association`, and the Android SHA-256 in
-`assetlinks.json` — the latter only exists after the first EAS Android build.
+What that trades away, and how each is handled:
+
+| Lost with the store | What replaces it |
+|---|---|
+| Auto-update | `lib/updates.ts` compares the app's version against `release.json` and shows a banner on Home |
+| Store-signed trust | HTTPS from our own domain, plus a published SHA-256 the visitor can check |
+| Install instructions | The site explains the "unknown sources" prompt everyone hits, step by step |
+| Store review | Nothing. This is the real cost — nobody else is checking the build |
+
+iOS remains unbuilt and can't be sideloaded, so an iPhone release still means
+App Store review, which additionally requires **Sign in with Apple**
+(guideline 4.8, triggered by offering Google login). The Apple Team ID in
+`landing/.well-known/apple-app-site-association` is still a placeholder.
 
 ## Where the real risk is
 

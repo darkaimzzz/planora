@@ -86,13 +86,38 @@ export type SlotCandidate = {
 };
 
 /**
+ * Sortable "now" in the same wall-clock shape as a cell key, read in UTC for
+ * the same reason formatSlot is: availability hours are wall-clock, and
+ * reading them locally slides an evening slot into the next day east of
+ * Greenwich.
+ */
+export function nowCell(now: Date = new Date()): { day: string; hour: number } {
+  return { day: now.toISOString().slice(0, 10), hour: now.getUTCHours() };
+}
+
+/** Cell keys pack the hour unpadded, so "…|9" sorts after "…|10". Compare parts. */
+function isPast(day: string, hour: number, floor: { day: string; hour: number }) {
+  return day < floor.day || (day === floor.day && hour < floor.hour);
+}
+
+/**
  * The top N hours by how many attendees are free, earliest first on a tie.
+ *
+ * Slots that have already started are dropped: a stale client could post
+ * availability for a day in the past, and the poll would then offer a time
+ * nobody can attend. The grid only ever shows the next seven days, so this
+ * only bites on bad input — which is exactly when it matters.
  *
  * ponytail: one-hour granularity, so a group free all evening gets three
  * adjacent hours offered rather than one merged block. Merge runs before
  * ranking if the options start looking repetitive.
  */
-export function topSlots(rows: AvailabilityRow[], limit = 3): SlotCandidate[] {
+export function topSlots(
+  rows: AvailabilityRow[],
+  limit = 3,
+  now: Date = new Date(),
+): SlotCandidate[] {
+  const floor = nowCell(now);
   const counts = new Map<Cell, Set<string>>();
   for (const r of rows) {
     const start = Number(r.start_time.slice(0, 2));
@@ -110,6 +135,7 @@ export function topSlots(rows: AvailabilityRow[], limit = 3): SlotCandidate[] {
       const { day, hour } = parseCell(cell);
       return { day, hour, availabilityCount: users.size };
     })
+    .filter((s) => !isPast(s.day, s.hour, floor))
     .sort(
       (a, b) =>
         b.availabilityCount - a.availabilityCount ||

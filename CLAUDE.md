@@ -565,3 +565,107 @@ PRD §10. Two real users complete the whole flow end to end. Polish is explicitl
     one icon. Re-run means redoing it from the artwork.
   - Verified: `npm run check` clean, `expo config` resolves every path, and
     each output was opened and looked at.
+
+- **2026-09-22 — Hardening pass: ten real defects closed, then a download site.**
+  A second reviewer (Codex) found four problems; checking them independently
+  confirmed all four, made two of them worse than reported, and turned up two
+  more it hadn't headlined. Everything below was reproduced against the live
+  project before being fixed, and is now covered by `npm run audit`.
+
+  **Security**
+  - **Anyone could create a venue poll on any plan with no login.**
+    `propose_venues` guarded with `if v_creator <> auth.uid()`. For an
+    anonymous caller `auth.uid()` is NULL, `x <> NULL` is NULL rather than
+    TRUE, and the guard never fired. Postgres also grants EXECUTE to PUBLIC by
+    default, so naming `authenticated` in a grant kept nobody out. **Any
+    authorisation that compares against `auth.uid()` must reject a NULL uid
+    first, explicitly** — `0004`–`0006` already did; `0003` was the one that
+    didn't.
+  - **Any signed-in user could dump every email in the database.**
+    `profiles_read` was `using (true)` and `email` is a column. RLS is
+    row-level, so the fix is column privileges: `revoke select on profiles`,
+    re-grant the safe columns, and match emails inside a `search_people()`
+    definer RPC that returns only id/name/colour. Invite-by-email still works;
+    no address leaves the database. The app reads your own email from the
+    session now, not from the table.
+  - **0007's revokes silently did nothing.** Supabase's default privileges
+    GRANT EXECUTE to `anon` explicitly, so revoking from PUBLIC leaves that
+    grant in place — `has_function_privilege('anon', …)` was still true for
+    every function afterwards. `0008` revokes from the named roles *and*
+    PUBLIC, and sets `alter default privileges … revoke execute … from anon`
+    so the next function added doesn't reopen it.
+
+  **Data integrity**
+  - **Concurrent calls created duplicate polls.** Codex saw 2 from 4 requests;
+    8 parallel calls across 6 rounds gave 6, 7, 7, 6, **8** and 6 time polls on
+    one plan. `step()` reads "is there a poll?" then inserts, and the client
+    fires `advance-plan` after every action, so two people saving availability
+    at the same moment is enough. Fixed in the only place it can be: a unique
+    index on `(plan_id, poll_type)`. The losing racers now get a violation and
+    bail out.
+  - **An interrupted run confirmed a plan with no time — and announced it.**
+    A crash between `closePoll()` and the `confirmed_start` write left the plan
+    `decided`, absent from every calendar, with a chat message reading "at *the
+    agreed time*". Step 4 now recovers the time from the winning option, and
+    refuses to confirm without one.
+  - **A crash after the status flip meant the message was never posted.**
+    `step()` returned early on `decided`, so no sweep could ever fix it. It now
+    checks for the missing confirmation and posts it, idempotently.
+  - A plan could be **INSERTed already `decided`** with a fabricated time and
+    venue — the freeze trigger was BEFORE UPDATE only.
+  - The creator could **rewrite the location after the venue vote closed**,
+    against the locked "no vote override, ever".
+  - A vote could **reference another poll's option** (independent FKs, nothing
+    tying them); now a composite FK makes it unrepresentable.
+  - Votes stayed **deletable after the poll closed**; the policy checked only
+    ownership. Split into insert/update/delete policies that all require an
+    open poll.
+  - `topSlots` could **offer a slot in the past** from stale client input.
+
+  **Operations**
+  - **The 24h cap had no scheduler at all** — `pg_cron` wasn't installed, so it
+    only fired when someone opened the app. Now a 15-minute `cron.schedule`
+    sweep via `pg_net` (moved out of `public`).
+  - `expo-doctor` was failing: **`react-native-worklets` and `expo-font` were
+    missing peers** — Reanimated and every icon in the app — which its own
+    output says "may crash outside of Expo Go". Exactly the class of bug a
+    browser harness cannot see. Plus `newArchEnabled` is no longer a valid
+    config field. 21/21 checks pass now.
+  - Advisors: 24 security notices → 10, 18 performance → 8. The remainder are
+    the definer RPCs the app is built on (by design) and unused-index notices
+    on an empty database. `auth_leaked_password_protection` needs a paid plan
+    (HTTP 402), so it stays off.
+  - `userInterfaceStyle` was still `"light"`, pinning the OS appearance against
+    the app's own dark mode.
+
+  **`npm run audit`** — 42 assertions, all from the attacker's side, covering
+  every one of the above plus the full happy path. It is the regression net:
+  if a policy loosens, it fails.
+
+- **2026-09-22 — No store: the app is downloaded from its own site.**
+  Play Store distribution is dropped. `landing/` is now a real product page
+  rather than a link handler.
+  - **`npm run build:apk`** (EAS, `apk` profile — a plain installable APK, not
+    an `.aab`), then **`npm run release`**, which finds the finished build,
+    downloads the artifact to `landing/planora.apk`, computes its SHA-256 and
+    size, writes `landing/release.json`, and fills `assetlinks.json` with the
+    signing fingerprint read out of the APK's own v1 signature block (no
+    keytool on this machine). Then `npx vercel deploy --prod`.
+  - The APK is **gitignored** — it is uploaded from disk at deploy time, so a
+    ~60 MB binary never enters the repository.
+  - The page reads `release.json` at runtime for version/size/date/checksum, so
+    shipping a new build is a file swap, not an edit. The download button is a
+    plain `<a>` and works with JavaScript off.
+  - Sideloading is explained honestly, including the browser warning everyone
+    gets on an APK, and the checksum is published so the file can be verified.
+  - **The app now checks for updates itself** (`lib/updates.ts`): it compares
+    its version against `release.json` and shows a banner on Home. Losing the
+    store means losing the only thing that tells anyone a new version exists.
+    `isNewer` is a pure function with asserts — 1.10.0 is after 1.9.0.
+  - `lib/updates.ts` must not import `expo-constants`: the caller passes its
+    own version in. **That rule broke `npm test` again during this change** —
+    third time. Pure modules stay pure.
+  - Privacy policy gained a section on direct distribution: no store account,
+    no install telemetry, and no automatic updates.
+  - `join.html` points at the download page instead of dead store links, and
+    says something honest on iOS rather than showing a button that does nothing.

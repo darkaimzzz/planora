@@ -148,10 +148,53 @@ async function closePoll(pollId: string): Promise<Tally | null> {
 
 // -------------------------------------------------------- the machine
 
+/** The confirmation message is the one with no author; the chat centres those. */
+async function hasConfirmationMessage(planId: string): Promise<boolean> {
+  const { count } = await db
+    .from('messages')
+    .select('id', { count: 'exact', head: true })
+    .eq('plan_id', planId)
+    .is('user_id', null);
+  return (count ?? 0) > 0;
+}
+
+async function postConfirmation(planId: string, title: string, startsAt: string | null, venue: string) {
+  // Idempotent: a retry after a half-finished run must not double-post.
+  if (await hasConfirmationMessage(planId)) return;
+  const when = startsAt
+    ? new Date(startsAt).toLocaleString('en-GB', {
+        weekday: 'long',
+        day: 'numeric',
+        month: 'short',
+        hour: 'numeric',
+        hour12: true,
+      })
+    : 'the agreed time';
+  await db.from('messages').insert({
+    plan_id: planId,
+    user_id: null,
+    content: await draftConfirmation(title, when, venue),
+  });
+}
+
 /** Performs at most one transition. Returns true if the plan moved. */
 async function step(planId: string): Promise<boolean> {
   const { data: plan } = await db.from('plans').select('*').eq('id', planId).single();
-  if (!plan || plan.status === 'decided') return false;
+  if (!plan) return false;
+
+  // A decided plan is finished — unless the run that decided it died between
+  // flipping the status and posting the message, in which case nothing else
+  // would ever post it and the group is never told.
+  if (plan.status === 'decided') {
+    if (await hasConfirmationMessage(planId)) return false;
+    await postConfirmation(
+      planId,
+      plan.title,
+      plan.confirmed_start,
+      plan.confirmed_venue ?? plan.location_name ?? 'the agreed place',
+    );
+    return true;
+  }
 
   const { data: attendees } = await db.from('plan_attendees').select('user_id').eq('plan_id', planId);
   const attendeeCount = attendees?.length ?? 0;
@@ -174,18 +217,23 @@ async function step(planId: string): Promise<boolean> {
     const slots = topSlots((rows ?? []) as AvailabilityRow[], 3);
     if (slots.length === 0) return false;
 
-    const { data: poll } = await db
+    // Several clients call this at once — everyone who saves their
+    // availability nudges it. A unique index on (plan_id, poll_type) makes the
+    // database pick one winner; the losers bail out here instead of each
+    // creating their own poll with its own options.
+    const { data: poll, error: pollError } = await db
       .from('polls')
       .insert({ plan_id: planId, poll_type: 'time' })
       .select()
       .single();
+    if (pollError || !poll) return false;
 
     await db.from('poll_options').insert(
       slots.map((s) => {
         const startsAt = new Date(`${s.day}T${String(s.hour).padStart(2, '0')}:00:00`);
         const endsAt = new Date(startsAt.getTime() + 60 * 60 * 1000);
         return {
-          poll_id: poll!.id,
+          poll_id: poll.id,
           label: startsAt.toLocaleString('en-GB', {
             weekday: 'short',
             day: 'numeric',
@@ -262,12 +310,36 @@ async function step(planId: string): Promise<boolean> {
     // somewhere nobody chose.
     const { data: fresh } = await db
       .from('plans')
-      .select('location_name, confirmed_start')
+      .select('location_name, confirmed_start, confirmed_end')
       .eq('id', planId)
       .single();
     if (!fresh?.location_name) return false;
 
-    const startsAt = fresh.confirmed_start;
+    let startsAt = fresh.confirmed_start;
+
+    // The time is normally written the moment the time poll closes. If a run
+    // died between those two writes, the plan would otherwise confirm with no
+    // time at all — decided, absent from every calendar, and announced in chat
+    // as happening at "the agreed time". Recover it from the poll instead.
+    if (!startsAt && timePoll.winning_option_id) {
+      const { data: option } = await db
+        .from('poll_options')
+        .select('starts_at, ends_at')
+        .eq('id', timePoll.winning_option_id)
+        .single();
+      if (option?.starts_at) {
+        await db
+          .from('plans')
+          .update({ confirmed_start: option.starts_at, confirmed_end: option.ends_at })
+          .eq('id', planId);
+        startsAt = option.starts_at;
+      }
+    }
+
+    // Still no time means the poll closed with no winner — nobody voted. Wait
+    // rather than confirm a plan that has no when.
+    if (!startsAt) return false;
+
     const venueLabel = fresh.location_name;
 
     await db
@@ -275,22 +347,7 @@ async function step(planId: string): Promise<boolean> {
       .update({ confirmed_venue: venueLabel, status: 'decided' })
       .eq('id', planId);
 
-    const when = startsAt
-      ? new Date(startsAt).toLocaleString('en-GB', {
-          weekday: 'long',
-          day: 'numeric',
-          month: 'short',
-          hour: 'numeric',
-          hour12: true,
-        })
-      : 'the agreed time';
-
-    // user_id null marks it as the AI message; the chat renders those centred.
-    await db.from('messages').insert({
-      plan_id: planId,
-      user_id: null,
-      content: await draftConfirmation(plan.title, when, venueLabel),
-    });
+    await postConfirmation(planId, plan.title, startsAt, venueLabel);
     return true;
   }
 

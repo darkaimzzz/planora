@@ -3,58 +3,451 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-    <title>Planora</title>
-    <meta name="description" content="Turn 'we should hang out sometime' into an actual confirmed plan." />
+    <title>Planora — get everyone in one place</title>
+    <meta
+      name="description"
+      content="Planora turns “we should hang out” into a confirmed time and place. Everyone marks when they're free, the group votes, the plan settles itself. Download the Android app."
+    />
+    <meta property="og:title" content="Planora — get everyone in one place" />
+    <meta
+      property="og:description"
+      content="Mark when you're free, vote, done. No group chat archaeology. Free Android download."
+    />
+    <meta property="og:type" content="website" />
     <meta name="theme-color" content="#5B5BD6" />
     <link rel="icon" href="/favicon.ico" />
     <style>
+      /*
+       * One static page, no build step, no framework. It exists to explain the
+       * app and hand over an APK, so it has to paint in a single round trip on
+       * a phone with two bars of signal.
+       *
+       * Palette is the app's: indigo leads, coral is the icon and the accent,
+       * grass marks anything settled.
+       */
       :root {
-        --bg:#fbfaf8; --surface:#fff; --border:#e7e5e0;
-        --ink:#1b2a5e; --ink-soft:#767c96; --primary:#5b5bd6; --primary-deep:#4342ad;
+        --bg: #fbfaf8;
+        --surface: #ffffff;
+        --sunken: #f2f1ee;
+        --border: #e7e5e0;
+        --ink: #1b2a5e;
+        --ink-soft: #767c96;
+        --primary: #5b5bd6;
+        --primary-deep: #4342ad;
+        --primary-wash: #ececfb;
+        --coral: #fe5e4d;
+        --coral-deep: #d6412f;
+        --grass: #2fa36b;
+        --grass-wash: #e4f5ec;
+        --shadow: 0 4px 24px rgb(27 42 94 / 8%);
+        --shadow-lg: 0 18px 50px rgb(27 42 94 / 14%);
       }
       @media (prefers-color-scheme: dark) {
         :root {
-          --bg:#12131a; --surface:#1c1e27; --border:#32364a;
-          --ink:#f2f3f8; --ink-soft:#9aa0b8; --primary:#8b8bf0; --primary-deep:#5b5bd6;
+          --bg: #12131a;
+          --surface: #1c1e27;
+          --sunken: #262935;
+          --border: #32364a;
+          --ink: #f2f3f8;
+          --ink-soft: #9aa0b8;
+          --primary: #8b8bf0;
+          --primary-deep: #5b5bd6;
+          --primary-wash: #262a4d;
+          --coral: #ff7a6b;
+          --coral-deep: #d6412f;
+          --grass: #58cf96;
+          --grass-wash: #1d3a2c;
+          --shadow: 0 4px 24px rgb(0 0 0 / 35%);
+          --shadow-lg: 0 18px 50px rgb(0 0 0 / 45%);
         }
       }
-      *{box-sizing:border-box}
-      body{margin:0;min-height:100dvh;display:grid;place-items:center;padding:24px;
-        background:var(--bg);color:var(--ink);text-align:center;
-        font:500 17px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
-        -webkit-font-smoothing:antialiased}
-      main{max-width:420px}
-      .mark{width:72px;height:72px;margin:0 auto 18px;border:3px solid var(--primary);
-        border-radius:18px;position:relative;display:grid;place-items:center;
-        font-size:30px;font-weight:800;color:var(--primary)}
-      .mark::before,.mark::after{content:"";position:absolute;top:-10px;width:3px;height:13px;
-        border-radius:2px;background:var(--primary)}
-      .mark::before{left:17px}.mark::after{right:17px}
-      h1{font-size:40px;letter-spacing:-1px;margin:0 0 6px}
-      p{color:var(--ink-soft);margin:0 0 28px;font-size:17px}
-      .steps{text-align:left;display:grid;gap:14px;margin:0 0 28px}
-      .step{display:flex;gap:12px;align-items:flex-start;background:var(--surface);
-        border:1px solid var(--border);border-radius:16px;padding:14px}
-      .n{flex:0 0 26px;height:26px;border-radius:13px;background:var(--primary);color:#fff;
-        display:grid;place-items:center;font-size:13px;font-weight:800}
-      .step b{display:block;font-size:15px}
-      .step span{color:var(--ink-soft);font-size:14px}
-      .foot{color:var(--ink-soft);font-size:13px}
+      * { box-sizing: border-box; }
+      html { scroll-behavior: smooth; }
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--ink);
+        font: 400 17px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+          "Helvetica Neue", Arial, sans-serif;
+        -webkit-font-smoothing: antialiased;
+        overflow-x: hidden;
+      }
+      .wrap { max-width: 1040px; margin: 0 auto; padding: 0 24px; }
+      a { color: var(--primary); }
+
+      /* ------------------------------------------------------------- nav */
+      nav {
+        position: sticky; top: 0; z-index: 10;
+        backdrop-filter: saturate(180%) blur(14px);
+        background: color-mix(in srgb, var(--bg) 82%, transparent);
+        border-bottom: 1px solid var(--border);
+      }
+      nav .wrap { display: flex; align-items: center; gap: 12px; height: 62px; }
+      .brand { display: flex; align-items: center; gap: 10px; font-weight: 800; letter-spacing: -0.3px; }
+      .brand img { width: 30px; height: 30px; border-radius: 8px; display: block; }
+      nav .spacer { flex: 1; }
+      nav a.nav-link { color: var(--ink-soft); text-decoration: none; font-size: 15px; font-weight: 600; }
+      nav a.nav-link:hover { color: var(--ink); }
+      @media (max-width: 640px) { nav a.nav-link.hide-sm { display: none; } }
+
+      /* ----------------------------------------------------------- hero */
+      header.hero { position: relative; padding: 72px 0 24px; overflow: hidden; }
+      header.hero::before {
+        content: ""; position: absolute; inset: -240px 0 auto; height: 520px;
+        background:
+          radial-gradient(52% 60% at 22% 40%, color-mix(in srgb, var(--coral) 26%, transparent), transparent 70%),
+          radial-gradient(50% 60% at 78% 30%, color-mix(in srgb, var(--primary) 30%, transparent), transparent 70%);
+        filter: blur(6px); pointer-events: none;
+      }
+      .hero-grid {
+        position: relative; display: grid; gap: 44px;
+        grid-template-columns: 1.05fr 0.95fr; align-items: center;
+      }
+      @media (max-width: 860px) { .hero-grid { grid-template-columns: 1fr; gap: 36px; } }
+      .eyebrow {
+        display: inline-flex; align-items: center; gap: 8px;
+        background: var(--primary-wash); color: var(--primary-deep);
+        border-radius: 999px; padding: 6px 14px;
+        font-size: 13px; font-weight: 800; letter-spacing: 0.02em;
+      }
+      @media (prefers-color-scheme: dark) { .eyebrow { color: var(--primary); } }
+      h1 {
+        font-size: clamp(38px, 6.2vw, 62px); line-height: 1.04;
+        letter-spacing: -1.8px; margin: 18px 0 14px; font-weight: 800; text-wrap: balance;
+      }
+      h1 .accent { color: var(--coral); }
+      .lede { font-size: 19px; color: var(--ink-soft); margin: 0 0 30px; max-width: 30em; }
+
+      /* The app's press-down button, in CSS. */
+      .btn {
+        display: inline-flex; align-items: center; justify-content: center; gap: 10px;
+        text-decoration: none; font: 800 17px/1 inherit;
+        padding: 17px 26px; border-radius: 16px; border: 0; cursor: pointer;
+        color: #fff; background: var(--primary); box-shadow: 0 4px 0 var(--primary-deep);
+        transform: translateY(0); transition: transform 60ms, box-shadow 60ms;
+      }
+      .btn:active { transform: translateY(4px); box-shadow: none; }
+      .btn.coral { background: var(--coral); box-shadow: 0 4px 0 var(--coral-deep); }
+      .btn.ghost {
+        color: var(--ink); background: var(--surface);
+        border: 1px solid var(--border); box-shadow: 0 4px 0 var(--border);
+      }
+      .cta-row { display: flex; flex-wrap: wrap; gap: 14px; align-items: center; }
+      .meta { margin: 14px 0 0; font-size: 14px; color: var(--ink-soft); }
+      .meta code { font-size: 12px; word-break: break-all; }
+
+      /* --------------------------------------------------------- phone */
+      .phone {
+        position: relative; width: 268px; margin: 0 auto;
+        border: 10px solid #11131c; border-radius: 40px; background: var(--surface);
+        box-shadow: var(--shadow-lg); overflow: hidden; aspect-ratio: 9 / 17.2;
+      }
+      .phone .notch {
+        position: absolute; top: 0; left: 50%; transform: translateX(-50%);
+        width: 110px; height: 22px; background: #11131c; border-radius: 0 0 14px 14px; z-index: 2;
+      }
+      .screen { height: 100%; padding: 34px 14px 14px; display: flex; flex-direction: column; gap: 10px; }
+      .screen .title { font-size: 19px; font-weight: 800; letter-spacing: -0.4px; }
+      .mini {
+        background: var(--sunken); border: 1px solid var(--border);
+        border-radius: 14px; padding: 10px 12px;
+      }
+      .mini .row { display: flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 700; }
+      .mini .sub { font-size: 11px; color: var(--ink-soft); margin-top: 2px; }
+      .dot { width: 18px; height: 18px; border-radius: 50%; flex: 0 0 18px; display: grid; place-items: center; color: #fff; font-size: 10px; font-weight: 800; }
+      .dot.done { background: var(--grass); }
+      .dot.now  { background: var(--coral); }
+      .dot.todo { background: var(--border); color: var(--ink-soft); }
+      .bar { height: 7px; border-radius: 99px; background: var(--border); overflow: hidden; }
+      .bar > i { display: block; height: 100%; width: 60%; background: var(--grass); border-radius: 99px; }
+      .slot {
+        display: flex; justify-content: space-between; align-items: center;
+        font-size: 12px; font-weight: 700; padding: 8px 10px; border-radius: 10px;
+        background: var(--surface); border: 1px solid var(--border);
+      }
+      .slot.win { background: var(--grass-wash); border-color: var(--grass); }
+      .tally { font-size: 11px; color: var(--ink-soft); font-weight: 700; }
+      .illus-note { text-align: center; font-size: 12px; color: var(--ink-soft); margin-top: 12px; }
+
+      /* ------------------------------------------------------ sections */
+      section { padding: 66px 0; }
+      section h2 {
+        font-size: clamp(26px, 3.6vw, 36px); letter-spacing: -0.9px;
+        margin: 0 0 10px; font-weight: 800;
+      }
+      section .sub { color: var(--ink-soft); margin: 0 0 32px; font-size: 17px; max-width: 40em; }
+      .cards { display: grid; gap: 18px; grid-template-columns: repeat(3, 1fr); }
+      @media (max-width: 860px) { .cards { grid-template-columns: 1fr; } }
+      .card {
+        background: var(--surface); border: 1px solid var(--border);
+        border-radius: 18px; padding: 22px; box-shadow: var(--shadow);
+      }
+      .card h3 { margin: 12px 0 6px; font-size: 18px; letter-spacing: -0.3px; }
+      .card p { margin: 0; color: var(--ink-soft); font-size: 15px; }
+      .glyph {
+        width: 42px; height: 42px; border-radius: 12px; display: grid; place-items: center;
+        font-size: 20px; background: var(--primary-wash);
+      }
+      .glyph.c { background: color-mix(in srgb, var(--coral) 18%, transparent); }
+      .glyph.g { background: var(--grass-wash); }
+
+      ol.steps { counter-reset: s; list-style: none; padding: 0; margin: 0; display: grid; gap: 14px; }
+      ol.steps li {
+        counter-increment: s; display: grid; grid-template-columns: 38px 1fr; gap: 14px;
+        align-items: start; background: var(--surface); border: 1px solid var(--border);
+        border-radius: 16px; padding: 16px 18px;
+      }
+      ol.steps li::before {
+        content: counter(s); width: 30px; height: 30px; border-radius: 50%;
+        background: var(--primary); color: #fff; display: grid; place-items: center;
+        font-weight: 800; font-size: 14px;
+      }
+      ol.steps b { display: block; }
+      ol.steps span { color: var(--ink-soft); font-size: 15px; }
+
+      .install { background: var(--sunken); border-radius: 22px; padding: 30px; border: 1px solid var(--border); }
+
+      details {
+        background: var(--surface); border: 1px solid var(--border);
+        border-radius: 14px; padding: 14px 18px; margin-bottom: 10px;
+      }
+      details summary { font-weight: 700; cursor: pointer; list-style: none; }
+      details summary::-webkit-details-marker { display: none; }
+      details summary::after { content: " +"; color: var(--ink-soft); float: right; }
+      details[open] summary::after { content: " –"; }
+      details p { color: var(--ink-soft); font-size: 15px; margin: 10px 0 2px; }
+
+      .final {
+        text-align: center; background: var(--surface); border: 1px solid var(--border);
+        border-radius: 26px; padding: 50px 26px; box-shadow: var(--shadow);
+      }
+      footer {
+        border-top: 1px solid var(--border); padding: 30px 0 46px;
+        color: var(--ink-soft); font-size: 14px;
+      }
+      footer .wrap { display: flex; flex-wrap: wrap; gap: 16px; align-items: center; }
+      footer a { color: var(--ink-soft); }
+      footer .spacer { flex: 1; }
     </style>
   </head>
   <body>
-    <main>
-      <div class="mark" aria-hidden="true">✓</div>
-      <h1>Planora</h1>
-      <p>Turn “we should hang out sometime” into an actual plan.</p>
-
-      <div class="steps">
-        <div class="step"><div class="n">1</div><div><b>Start a plan</b><span>Name it, invite your friends with a link.</span></div></div>
-        <div class="step"><div class="n">2</div><div><b>Everyone marks when they're free</b><span>Drag across a week. No group-chat archaeology.</span></div></div>
-        <div class="step"><div class="n">3</div><div><b>The group votes</b><span>On the time, and on where to go. It confirms itself.</span></div></div>
+    <nav>
+      <div class="wrap">
+        <span class="brand"><img src="/icon.png" alt="" /> Planora</span>
+        <span class="spacer"></span>
+        <a class="nav-link hide-sm" href="#how">How it works</a>
+        <a class="nav-link hide-sm" href="#install">Install</a>
+        <a class="nav-link" href="/privacy">Privacy</a>
       </div>
+    </nav>
 
-      <p class="foot">Planora is a mobile app. Coming to the App Store and Google Play.<br /><a href="/privacy" style="color:var(--primary)">Privacy Policy</a></p>
-    </main>
+    <header class="hero">
+      <div class="wrap hero-grid">
+        <div>
+          <span class="eyebrow">Free · Android · No account needed to look</span>
+          <h1>Stop planning.<br /><span class="accent">Start showing up.</span></h1>
+          <p class="lede">
+            Everyone marks when they're free. Planora finds the hours that actually overlap,
+            the group votes, and the plan confirms itself — time, place, done. No forty-message
+            thread that ends in nobody going.
+          </p>
+          <div class="cta-row">
+            <a class="btn coral" id="download" href="/planora.apk" download>
+              <span aria-hidden="true">↓</span> Download for Android
+            </a>
+            <a class="btn ghost" href="#how">See how it works</a>
+          </div>
+          <p class="meta" id="release">Android 7.0 and up · free · no ads, no tracking</p>
+        </div>
+
+        <div>
+          <div class="phone" role="img" aria-label="Illustration of a Planora plan: three of five stages complete, with a winning time slot.">
+            <span class="notch"></span>
+            <div class="screen">
+              <div class="title">Ramen, Thursday?</div>
+              <div class="bar"><i></i></div>
+              <div class="mini">
+                <div class="row"><span class="dot done">✓</span> Everyone's in</div>
+                <div class="sub">4 of 4 joined</div>
+              </div>
+              <div class="mini">
+                <div class="row"><span class="dot done">✓</span> Free times marked</div>
+                <div class="sub">4 of 4 shared theirs</div>
+              </div>
+              <div class="mini">
+                <div class="row"><span class="dot now">3</span> Vote on the time</div>
+                <div class="sub" style="margin-top: 8px; display: grid; gap: 6px">
+                  <span class="slot win">Thu 7 pm <span class="tally">3 votes</span></span>
+                  <span class="slot">Thu 8 pm <span class="tally">1 vote</span></span>
+                  <span class="slot">Fri 7 pm <span class="tally">0</span></span>
+                </div>
+              </div>
+              <div class="mini">
+                <div class="row"><span class="dot todo">4</span> Pick the place</div>
+                <div class="sub">2 places shortlisted</div>
+              </div>
+            </div>
+          </div>
+          <p class="illus-note">An illustration, not a screenshot.</p>
+        </div>
+      </div>
+    </header>
+
+    <section id="how" class="wrap">
+      <h2>Five steps, and the app does four of them</h2>
+      <p class="sub">
+        The only thing anyone has to actually do is say when they're free and tap a vote.
+      </p>
+      <ol class="steps">
+        <li><div><b>Start a plan</b><span>Give it a name. Share the link. People join by tapping it — no accounts to look up, no adding anyone by hand.</span></div></li>
+        <li><div><b>Drag when you're free</b><span>A week grid. Drag across the hours that work. That's the whole input.</span></div></li>
+        <li><div><b>The app finds the overlap</b><span>It works out the three hours that suit the most people and opens a vote on them. Nobody compares calendars.</span></div></li>
+        <li><div><b>Vote on the place</b><span>Whoever started it shortlists two or three real venues. The group picks. One place and everyone agrees? It skips the vote.</span></div></li>
+        <li><div><b>It confirms itself</b><span>When the votes settle, the plan locks in, announces itself in the chat, and lands on your calendar with the address.</span></div></li>
+      </ol>
+    </section>
+
+    <section class="wrap">
+      <h2>Why it's different</h2>
+      <p class="sub">Three decisions that make it feel unlike a group chat.</p>
+      <div class="cards">
+        <div class="card">
+          <div class="glyph">🗳️</div>
+          <h3>Nobody overrules the group</h3>
+          <p>
+            The person who started the plan can rename it. That's it. They can't move the time
+            or change the place after a vote — the database itself refuses.
+          </p>
+        </div>
+        <div class="card">
+          <div class="glyph c">⏱️</div>
+          <h3>Plans can't stall</h3>
+          <p>
+            A vote closes as soon as the result can't change, and always within 24 hours whether
+            anyone opens the app or not. No plan sits waiting on one person forever.
+          </p>
+        </div>
+        <div class="card">
+          <div class="glyph g">🙈</div>
+          <h3>Your calendar stays yours</h3>
+          <p>
+            Other people see the hours you marked for that one plan. Not your week, not your
+            other plans, not your email address. There is no tracking and there are no ads.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <section id="install" class="wrap">
+      <div class="install">
+        <h2>Installing it</h2>
+        <p class="sub">
+          Planora isn't on the Play Store — you're downloading it straight from us. Android
+          will ask you to confirm that once. That's normal for a direct download, and here's
+          exactly what you'll see.
+        </p>
+        <ol class="steps">
+          <li><div><b>Tap download</b><span>The file is <code>planora.apk</code>. Your browser may warn that this type of file can harm your device — that warning appears for every APK, including safe ones. Choose <b>Download anyway</b>.</span></div></li>
+          <li><div><b>Open it</b><span>Tap the file in your notifications or in Downloads.</span></div></li>
+          <li><div><b>Allow this one install</b><span>Android asks whether to allow installs from your browser. Turn it on for that app, go back, and tap Install. You only do this once.</span></div></li>
+          <li><div><b>Open Planora</b><span>Make an account with an email or with Google, pick a name, and you're in.</span></div></li>
+        </ol>
+        <p class="meta" id="verify"></p>
+        <div class="cta-row" style="margin-top: 22px">
+          <a class="btn coral" href="/planora.apk" download><span aria-hidden="true">↓</span> Download the APK</a>
+        </div>
+      </div>
+    </section>
+
+    <section class="wrap">
+      <h2>Questions people actually ask</h2>
+      <details>
+        <summary>Why isn't it on the Play Store?</summary>
+        <p>
+          Google charges a fee, requires an identity check, and makes a new personal developer
+          account run a two-week closed test with twelve people before anything goes public.
+          Handing you the file directly skips all of that, and you get updates the day they're
+          made rather than the day a review finishes.
+        </p>
+      </details>
+      <details>
+        <summary>Is it safe to install something from outside the store?</summary>
+        <p>
+          The risk with an APK is not knowing who built it or whether it was tampered with on
+          the way to you. This one is served over HTTPS from the address in your URL bar, and
+          the SHA-256 checksum above lets you confirm the file you got is byte-for-byte the one
+          we published. The source is public, too — the link is in the footer.
+        </p>
+      </details>
+      <details>
+        <summary>How do I get updates?</summary>
+        <p>
+          Come back to this page and download it again; installing over the top keeps your
+          account and your plans. There's no auto-update, which is the honest trade for not
+          being in a store.
+        </p>
+      </details>
+      <details>
+        <summary>Is there an iPhone version?</summary>
+        <p>
+          Not yet. Apple doesn't allow installing outside the App Store, so an iOS release has
+          to go through review — that's a later job. Your plans live in the cloud, so an iPhone
+          friend can be added the moment it exists.
+        </p>
+      </details>
+      <details>
+        <summary>What does it cost?</summary>
+        <p>Nothing. There's no paid tier, no ads and nothing is sold on.</p>
+      </details>
+      <details>
+        <summary>What do you collect?</summary>
+        <p>
+          Your email, your display name, and the plans you're in. No analytics, no tracking, no
+          cookies. You can delete your account and everything in it from inside the app. The
+          full detail is in the <a href="/privacy">privacy policy</a>.
+        </p>
+      </details>
+    </section>
+
+    <section class="wrap">
+      <div class="final">
+        <h2 style="margin-bottom: 8px">Get everyone in one place</h2>
+        <p class="sub" style="margin: 0 auto 26px">It takes about a minute to set up the first plan.</p>
+        <a class="btn coral" href="/planora.apk" download><span aria-hidden="true">↓</span> Download for Android</a>
+        <p class="meta" id="release-2"></p>
+      </div>
+    </section>
+
+    <footer>
+      <div class="wrap">
+        <span class="brand"><img src="/icon.png" alt="" /> Planora</span>
+        <span class="spacer"></span>
+        <a href="/privacy">Privacy policy</a>
+        <a href="https://github.com/darkaimzzz/plan">Source</a>
+      </div>
+    </footer>
+
+    <script>
+      // Release details live in one small file so publishing a new build is a
+      // file swap, not an edit to this page. The button works without any of
+      // this — it's a plain link.
+      fetch('/release.json')
+        .then((r) => (r.ok ? r.json() : null))
+        .then((rel) => {
+          if (!rel) return;
+          const line =
+            `Version ${rel.version} · ${rel.size} · Android ${rel.minAndroid}+ · ` +
+            `released ${rel.released} · free, no ads, no tracking`;
+          for (const id of ['release', 'release-2']) {
+            const el = document.getElementById(id);
+            if (el) el.textContent = line;
+          }
+          if (rel.sha256) {
+            document.getElementById('verify').innerHTML =
+              'SHA-256 of the file you should get:<br /><code>' + rel.sha256 + '</code>';
+          }
+        })
+        .catch(() => {});
+    </script>
   </body>
 </html>

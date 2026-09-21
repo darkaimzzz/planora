@@ -13,3 +13,9 @@ dist/
 
 .vercel
 .env*
+
+# The release APK is uploaded at deploy time, never committed.
+landing/planora.apk
+
+# One-off audit scratch from an external review; superseded by scripts/audit.mjs
+audit/

@@ -7,7 +7,6 @@
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",
-    "newArchEnabled": true,
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "com.darkaimzzz.planora",
@@ -56,7 +55,15 @@
           "resizeMode": "contain",
           "backgroundColor": "#FE5E4D"
         }
-      ]
-    ]
+      ],
+      "expo-font"
+    ],
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "fa11900c-5842-410f-afab-2ccd70ee1d89"
+      }
+    },
+    "owner": "darkaimxd"
   }
 }

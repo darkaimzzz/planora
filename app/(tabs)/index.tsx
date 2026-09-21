@@ -1,7 +1,8 @@
-import { useCallback, useState } from 'react';
-import { RefreshControl, ScrollView } from 'react-native';
+import { useCallback, useEffect, useState } from 'react';
+import { Linking, RefreshControl, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect, useRouter } from 'expo-router';
+import Constants from 'expo-constants';
 import { Ionicons } from '@expo/vector-icons';
 import { Text, View } from 'tamagui';
 import { useAppearance } from '@/lib/appearance';
@@ -9,6 +10,7 @@ import { useAuth } from '@/lib/auth';
 import { bucketPlans, formatSlot, type Plan } from '@/lib/plans';
 import { fetchMyPlans } from '@/lib/planQueries';
 import { monthGrid, weekGrid, type Day } from '@/lib/calendar';
+import { checkForUpdate, type AvailableUpdate } from '@/lib/updates';
 import { brand, radius } from '@/lib/theme';
 import {
   Avatar,
@@ -35,6 +37,12 @@ export default function Home() {
   const [refreshing, setRefreshing] = useState(false);
   const [mode, setMode] = useState<'month' | 'week'>('month');
   const [anchor, setAnchor] = useState(new Date());
+  const [update, setUpdate] = useState<AvailableUpdate | null>(null);
+
+  // Once per launch. Never blocks anything; failure is silence.
+  useEffect(() => {
+    checkForUpdate(Constants.expoConfig?.version).then(setUpdate);
+  }, []);
 
   const load = useCallback(async () => {
     setRefreshing(true);
@@ -105,6 +113,31 @@ export default function Home() {
               </View>
             </View>
           </FadeIn>
+
+          {/* No app store means nothing tells you a new version exists. */}
+          {update && (
+            <FadeIn delay={30}>
+              <Tappable onPress={() => Linking.openURL(update.url)}>
+                <Card
+                  padding={14}
+                  gap={2}
+                  backgroundColor={brand.accentWash}
+                  borderColor={brand.accent}
+                >
+                  <View flexDirection="row" alignItems="center" gap={10}>
+                    <Ionicons name="arrow-down-circle" size={20} color={String(brand.accentDeep)} />
+                    <View flex={1}>
+                      <Text fontWeight="800" color={brand.ink}>
+                        Version {update.version} is out
+                      </Text>
+                      <Muted fontSize={13}>Tap to download it from planora</Muted>
+                    </View>
+                    <Ionicons name="chevron-forward" size={18} color={String(brand.inkSoft)} />
+                  </View>
+                </Card>
+              </Tappable>
+            </FadeIn>
+          )}
 
           {/* Three stat tiles, one per base colour — the app's pulse at a glance. */}
           <FadeIn delay={50}>

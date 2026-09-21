@@ -142,8 +142,7 @@
       <a class="btn" id="open" href="#">Open in Planora</a>
 
       <div class="stores" id="stores">
-        <a class="btn secondary" id="ios" href="#">Get it on the App Store</a>
-        <a class="btn secondary" id="android" href="#">Get it on Google Play</a>
+        <a class="btn secondary" id="android" href="/">Get Planora for Android</a>
       </div>
 
       <p class="hint" id="hint">Don't have the app yet? Install it, then tap the link again.</p>
@@ -158,8 +157,8 @@
       // meant to see.
       const SUPABASE_URL = 'https://tnjgqoznxgeymipbxqqs.supabase.co';
       const SUPABASE_KEY = 'sb_publishable_Vfe6fcgpkb6cHWfY3XIxmA_JKODoxfB';
-      const APP_STORE_URL = '';   // fill in once the app is live
-      const PLAY_STORE_URL = '';  // fill in once the app is live
+      // There is no store: the app is downloaded straight from the home page.
+      const DOWNLOAD_URL = '/';
 
       const token = decodeURIComponent(location.pathname.split('/').filter(Boolean).pop() || '');
       const deepLink = 'planora://join/' + token;
@@ -167,17 +166,20 @@
       document.getElementById('open').href = deepLink;
 
       const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
-      const isAndroid = /Android/.test(navigator.userAgent);
-
-      // Only show the store the visitor can actually use.
       const stores = document.getElementById('stores');
-      const iosLink = document.getElementById('ios');
       const androidLink = document.getElementById('android');
-      if (APP_STORE_URL) iosLink.href = APP_STORE_URL; else iosLink.remove();
-      if (PLAY_STORE_URL) androidLink.href = PLAY_STORE_URL; else androidLink.remove();
-      if (isIOS && !PLAY_STORE_URL) androidLink?.remove();
-      if (isAndroid && !APP_STORE_URL) iosLink?.remove();
-      if (stores.children.length) stores.classList.add('show');
+      androidLink.href = DOWNLOAD_URL;
+
+      if (isIOS) {
+        // Nothing to offer an iPhone yet, and a dead Android button is worse
+        // than an honest sentence.
+        androidLink.remove();
+        document.getElementById('open').remove();
+        document.getElementById('hint').textContent =
+          'Planora is Android-only for now. Open this link on an Android phone, or ask whoever invited you to save you a spot.';
+      } else {
+        stores.classList.add('show');
+      }
 
       // Show which plan it is, so the page isn't an anonymous wall.
       // A failure here is cosmetic — the button still works.

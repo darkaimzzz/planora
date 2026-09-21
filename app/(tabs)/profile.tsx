@@ -17,7 +17,7 @@ const APPEARANCE_OPTIONS: { key: AppearanceChoice; label: string }[] = [
 
 export default function ProfileScreen() {
   const { choice, scheme, setChoice } = useAppearance();
-  const { profile, refreshProfile } = useAuth();
+  const { profile, session, refreshProfile } = useAuth();
   const [name, setName] = useState(profile?.display_name ?? '');
   const [color, setColor] = useState(profile?.avatar_color ?? AVATAR_COLORS[5]);
   const [saved, setSaved] = useState(false);
@@ -116,7 +116,7 @@ export default function ProfileScreen() {
           <FadeIn delay={120}>
             <Card gap={6}>
               <Heading>Account</Heading>
-              <Muted>{profile?.email}</Muted>
+              <Muted>{session?.user.email}</Muted>
               <Muted>Signed in with {profile?.auth_provider === 'google' ? 'Google' : 'email'}</Muted>
             </Card>
           </FadeIn>
