@@ -499,3 +499,22 @@ PRD §10. Two real users complete the whole flow end to end. Polish is explicitl
     advance and the UI appears blank. Not an app bug (a real foreground tab is
     fine), but it makes the extension unusable for this unless its window is in
     the foreground.
+
+- **2026-09-22 — Account deletion, and a handoff document.**
+  - `0006_delete_account.sql`: `delete_own_account()` and
+    `account_deletion_impact()`. Deleting the auth user cascades to the
+    profile, their plans, attendance, availability and votes. Their **messages
+    are deleted explicitly first** — `messages.user_id` is ON DELETE SET NULL
+    and a null author is how the app marks the AI confirmation message, so a
+    deleted person's chat would otherwise reappear as system announcements.
+  - The confirmation names what it destroys for other people, because deleting
+    a creator deletes their plans for everyone in them. Two steps, no native
+    `Alert` (inconsistent across platforms, unstyleable, untestable).
+  - Verified live, **12 assertions**: anonymous callers refused, the auth user
+    and profile gone, her plan gone, *someone else's plan survives*, attendance
+    and messages gone, and the null-author count in the other plan unchanged —
+    proving her messages did not become system messages. UI flow verified too.
+  - `HANDOFF.md` written for an external reviewer: architecture, what is
+    verified and how, what is explicitly **not** verified (no device build, the
+    guessed Jev API, Claude never run with a key), the known weak points, and
+    the traps already hit so they aren't re-derived.

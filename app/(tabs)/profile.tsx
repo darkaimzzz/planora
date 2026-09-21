@@ -7,6 +7,7 @@ import { supabase } from '@/lib/supabase';
 import { AVATAR_COLORS, brand, radius } from '@/lib/theme';
 import { useAppearance, type AppearanceChoice } from '@/lib/appearance';
 import { Avatar, Card, FadeIn, PushButton, Heading, Muted, Screen, Tappable, Title } from '@/components/ui';
+import { DeleteAccount } from '@/components/DeleteAccount';
 
 const APPEARANCE_OPTIONS: { key: AppearanceChoice; label: string }[] = [
   { key: 'system', label: 'System' },
@@ -129,6 +130,8 @@ export default function ProfileScreen() {
               </Text>
             </View>
           </Tappable>
+
+          <DeleteAccount />
         </ScrollView>
       </SafeAreaView>
     </Screen>

@@ -127,6 +127,7 @@ dashboard's SQL editor.
 ## Project layout
 
 - `PRD.md` — the full product spec
+- `HANDOFF.md` — read this first if you are reviewing the code
 - `CLAUDE.md` — working context: locked decisions, build order, conventions
 - `app/` — screens (Expo Router)
 - `components/` — the shared UI kit
