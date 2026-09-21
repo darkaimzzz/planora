@@ -72,7 +72,13 @@
         -webkit-font-smoothing: antialiased;
         overflow-x: hidden;
       }
-      .wrap { max-width: 1040px; margin: 0 auto; padding: 0 24px; }
+      /*
+       * Only ever sets the horizontal gutter. It used to be `padding: 0 24px`,
+       * which as a class beat `section { padding: 66px 0 }` on specificity and
+       * silently zeroed every section's vertical rhythm — the whole page
+       * collapsed into one block. Separate axes, so the two rules can't fight.
+       */
+      .wrap { max-width: 1040px; margin: 0 auto; padding-inline: 24px; }
       a { color: var(--primary); }
 
       /* ------------------------------------------------------------- nav */
@@ -133,7 +139,9 @@
         border: 1px solid var(--border); box-shadow: 0 4px 0 var(--border);
       }
       .cta-row { display: flex; flex-wrap: wrap; gap: 14px; align-items: center; }
-      .meta { margin: 14px 0 0; font-size: 14px; color: var(--ink-soft); }
+      .meta { margin: 16px 0 0; font-size: 14px; color: var(--ink-soft); line-height: 1.55; }
+      /* Inside the install panel this follows the last step, so it needs air. */
+      .install .meta { margin-top: 26px; }
       .meta code { font-size: 12px; word-break: break-all; }
 
       /* --------------------------------------------------------- phone */
@@ -170,20 +178,22 @@
       .illus-note { text-align: center; font-size: 12px; color: var(--ink-soft); margin-top: 12px; }
 
       /* ------------------------------------------------------ sections */
-      section { padding: 66px 0; }
+      /* scroll-margin keeps a jumped-to heading clear of the sticky nav. */
+      section { padding-block: 80px; scroll-margin-top: 62px; }
+      @media (max-width: 720px) { section { padding-block: 56px; } }
       section h2 {
         font-size: clamp(26px, 3.6vw, 36px); letter-spacing: -0.9px;
-        margin: 0 0 10px; font-weight: 800;
+        margin: 0 0 12px; font-weight: 800;
       }
-      section .sub { color: var(--ink-soft); margin: 0 0 32px; font-size: 17px; max-width: 40em; }
-      .cards { display: grid; gap: 18px; grid-template-columns: repeat(3, 1fr); }
+      section .sub { color: var(--ink-soft); margin: 0 0 38px; font-size: 17px; max-width: 40em; }
+      .cards { display: grid; gap: 22px; grid-template-columns: repeat(3, 1fr); }
       @media (max-width: 860px) { .cards { grid-template-columns: 1fr; } }
       .card {
         background: var(--surface); border: 1px solid var(--border);
-        border-radius: 18px; padding: 22px; box-shadow: var(--shadow);
+        border-radius: 18px; padding: 26px 24px 28px; box-shadow: var(--shadow);
       }
-      .card h3 { margin: 12px 0 6px; font-size: 18px; letter-spacing: -0.3px; }
-      .card p { margin: 0; color: var(--ink-soft); font-size: 15px; }
+      .card h3 { margin: 16px 0 8px; font-size: 18px; letter-spacing: -0.3px; }
+      .card p { margin: 0; color: var(--ink-soft); font-size: 15px; line-height: 1.62; }
       .glyph {
         width: 42px; height: 42px; border-radius: 12px; display: grid; place-items: center;
         font-size: 20px; background: var(--primary-wash);
@@ -191,25 +201,35 @@
       .glyph.c { background: color-mix(in srgb, var(--coral) 18%, transparent); }
       .glyph.g { background: var(--grass-wash); }
 
-      ol.steps { counter-reset: s; list-style: none; padding: 0; margin: 0; display: grid; gap: 14px; }
+      ol.steps { counter-reset: s; list-style: none; padding: 0; margin: 0; display: grid; gap: 16px; }
       ol.steps li {
-        counter-increment: s; display: grid; grid-template-columns: 38px 1fr; gap: 14px;
+        counter-increment: s; display: grid; grid-template-columns: 38px 1fr; gap: 16px;
         align-items: start; background: var(--surface); border: 1px solid var(--border);
-        border-radius: 16px; padding: 16px 18px;
+        border-radius: 16px; padding: 20px 22px;
       }
       ol.steps li::before {
         content: counter(s); width: 30px; height: 30px; border-radius: 50%;
         background: var(--primary); color: #fff; display: grid; place-items: center;
         font-weight: 800; font-size: 14px;
       }
-      ol.steps b { display: block; }
-      ol.steps span { color: var(--ink-soft); font-size: 15px; }
+      /*
+       * Only the step's own title goes on its own line. This used to be
+       * `ol.steps b`, which also caught a <b> used mid-sentence and pushed it
+       * onto a line of its own, orphaning the full stop after it.
+       */
+      ol.steps li > div > b { display: block; margin-bottom: 3px; }
+      ol.steps span { color: var(--ink-soft); font-size: 15px; line-height: 1.6; }
 
-      .install { background: var(--sunken); border-radius: 22px; padding: 30px; border: 1px solid var(--border); }
+      .install {
+        background: var(--sunken); border-radius: 22px;
+        padding: 40px 36px; border: 1px solid var(--border);
+      }
+      @media (max-width: 720px) { .install { padding: 28px 20px; border-radius: 18px; } }
+      .install h2 { margin-top: 0; }
 
       details {
         background: var(--surface); border: 1px solid var(--border);
-        border-radius: 14px; padding: 14px 18px; margin-bottom: 10px;
+        border-radius: 14px; padding: 18px 22px; margin-bottom: 12px;
       }
       details summary { font-weight: 700; cursor: pointer; list-style: none; }
       details summary::-webkit-details-marker { display: none; }
@@ -219,8 +239,9 @@
 
       .final {
         text-align: center; background: var(--surface); border: 1px solid var(--border);
-        border-radius: 26px; padding: 50px 26px; box-shadow: var(--shadow);
+        border-radius: 26px; padding: 58px 26px; box-shadow: var(--shadow);
       }
+      .final h2 { margin-top: 0; }
       footer {
         border-top: 1px solid var(--border); padding: 30px 0 46px;
         color: var(--ink-soft); font-size: 14px;

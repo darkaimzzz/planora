@@ -45,10 +45,37 @@ console.log(`${APK}  ${(bytes / 1048576).toFixed(1)} MB  sha256 ${sha256.slice(0
 /**
  * Signing certificate fingerprint, for .well-known/assetlinks.json.
  *
- * Read out of the APK's v1 (JAR) signature rather than shelling out to
- * keytool, which isn't installed here. Best effort: a build signed only with
- * the v2/v3 scheme has no META-INF/*.RSA to read, and then App Links just
- * stay unverified — the planora:// button on the invite page still works.
+ * Asked of EAS directly: it holds the keystore, and modern builds are signed
+ * with the v2/v3 scheme only, so there is no META-INF/*.RSA in the APK to read
+ * and no keytool on this machine either. `signingFingerprint()` below is the
+ * fallback for a v1-signed build.
+ */
+async function fingerprintFromEas(projectId) {
+  const query = `query($appId: String!) {
+    app { byId(appId: $appId) { androidAppCredentials {
+      androidAppBuildCredentialsList { isDefault androidKeystore { sha256CertificateFingerprint } }
+    } } }
+  }`;
+  try {
+    const res = await fetch('https://api.expo.dev/graphql', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', authorization: `Bearer ${token}` },
+      body: JSON.stringify({ query, variables: { appId: projectId } }),
+    });
+    const json = await res.json();
+    const creds = json?.data?.app?.byId?.androidAppCredentials?.[0]?.androidAppBuildCredentialsList ?? [];
+    const hex = (creds.find((c) => c.isDefault) ?? creds[0])?.androidKeystore?.sha256CertificateFingerprint;
+    if (!hex) return null;
+    // Android wants colon-separated uppercase pairs, not a bare hex string.
+    return hex.toUpperCase().match(/../g).join(':');
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Fallback: pull the certificate out of the APK's own v1 (JAR) signature.
+ * Only works if the build was signed with the v1 scheme.
  */
 function signingFingerprint(buf) {
   // Walk the zip's central directory from the end-of-central-directory record.
@@ -93,12 +120,14 @@ function signingFingerprint(buf) {
   return null;
 }
 
-const fingerprint = signingFingerprint(file);
-console.log('signing cert sha256:', fingerprint ?? 'not found (v2/v3-only signature)');
+const appConfig = JSON.parse(readFileSync('app.json', 'utf8')).expo;
+const fingerprint =
+  (await fingerprintFromEas(appConfig.extra?.eas?.projectId)) ?? signingFingerprint(file);
+console.log('signing cert sha256:', fingerprint ?? 'unavailable — App Links will not verify');
 
 // --------------------------------------------------------------- describe it
 const release = {
-  version: build.appVersion ?? JSON.parse(readFileSync('app.json', 'utf8')).expo.version,
+  version: build.appVersion ?? appConfig.version,
   build: build.appBuildVersion ?? null,
   size: `${(bytes / 1048576).toFixed(1)} MB`,
   bytes,
@@ -119,7 +148,7 @@ if (fingerprint) {
       relation: ['delegate_permission/common.handle_all_urls'],
       target: {
         namespace: 'android_app',
-        package_name: JSON.parse(readFileSync('app.json', 'utf8')).expo.android.package,
+        package_name: appConfig.android.package,
         sha256_cert_fingerprints: [fingerprint],
       },
     },
