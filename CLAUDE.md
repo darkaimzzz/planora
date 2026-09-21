@@ -372,3 +372,30 @@ PRD §10. Two real users complete the whole flow end to end. Polish is explicitl
     (typing and clicks intermittently not reaching React, screenshot timeouts).
     The join check was run with Playwright instead; the main flow earlier was
     driven through the extension.
+
+- **2026-09-21 — Segmented control fixed on device, and dark mode.**
+  - **The top bar was empty on a real phone.** The segments used `Tappable`,
+    which puts its `style` on an inner animated view, so `flex: 1` never
+    reached the pressable. On web the row still gave them width; on native they
+    collapsed to nothing. They are plain `Pressable`s with `flex: 1` now, and
+    the inner view needs no flex — a View's children stretch to its width by
+    default. Same trap caught the earlier bunched-up segments; worth
+    remembering that `Tappable`'s style does *not* size the touch target.
+  - **Dark mode.** `lib/theme.ts` holds `lightPalette` and `darkPalette` and a
+    mutable `brand` that `AppearanceProvider` swaps in place. Chosen over a
+    `useBrand()` hook because ~205 call sites across twenty files read
+    `brand.x` directly; mutating one object avoided rewriting all of them. The
+    rule it depends on — never capture `brand.x` at module scope — meant
+    removing every baked colour: the nine `styled()` defaults in `ui.tsx` are
+    plain components now, `TONES` became a function, and the two
+    `StyleSheet.create` blocks are built per render.
+  - Dark is designed, not inverted: surfaces lift as they come forward, the
+    three hues brighten to hold up against a dark ground, and the washes are
+    dim tints rather than pastels. `Palette.isDark` lets a component pick the
+    shade that reads — badges use the bright hue on dark, the deep one on light.
+  - Appearance picker in Profile: System / Light / Dark, persisted to
+    AsyncStorage, defaulting to the device.
+  - **React Navigation memoises screen options**, so the tab bar kept its light
+    colours when everything else changed. The tabs layout now reads the
+    appearance context and is keyed on the scheme.
+  - Verified in the browser: Profile, Home and the tab bar all render dark.

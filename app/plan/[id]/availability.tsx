@@ -135,6 +135,8 @@ export default function Availability() {
     router.back();
   }
 
+  const styles = makeStyles();
+
   if (loading) return <Loader />;
 
   return (
@@ -207,7 +209,13 @@ function formatHour(hour: number) {
   return `${h}${suffix}`;
 }
 
-const styles = StyleSheet.create({
+/**
+ * Built per render rather than once at module load: StyleSheet.create would
+ * freeze whichever palette was active when the file was first imported, so
+ * the grid would keep light colours in dark mode.
+ */
+function makeStyles() {
+  return StyleSheet.create({
   flex: { flex: 1, backgroundColor: brand.bg as unknown as string },
   header: { paddingHorizontal: 12, paddingTop: 10, paddingBottom: 10 },
   headerTop: { flexDirection: 'row', alignItems: 'center', gap: 6 },
@@ -244,4 +252,5 @@ const styles = StyleSheet.create({
     borderTopColor: brand.border as unknown as string,
     backgroundColor: brand.surface as unknown as string,
   },
-});
+  });
+}

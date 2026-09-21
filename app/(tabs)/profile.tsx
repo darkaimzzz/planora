@@ -1,13 +1,21 @@
 import { useState } from 'react';
-import { ScrollView } from 'react-native';
+import { Pressable, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Input, Text, View } from 'tamagui';
 import { useAuth } from '@/lib/auth';
 import { supabase } from '@/lib/supabase';
-import { AVATAR_COLORS, brand } from '@/lib/theme';
+import { AVATAR_COLORS, brand, radius } from '@/lib/theme';
+import { useAppearance, type AppearanceChoice } from '@/lib/appearance';
 import { Avatar, Card, FadeIn, PushButton, Heading, Muted, Screen, Tappable, Title } from '@/components/ui';
 
+const APPEARANCE_OPTIONS: { key: AppearanceChoice; label: string }[] = [
+  { key: 'system', label: 'System' },
+  { key: 'light', label: 'Light' },
+  { key: 'dark', label: 'Dark' },
+];
+
 export default function ProfileScreen() {
+  const { choice, scheme, setChoice } = useAppearance();
   const { profile, refreshProfile } = useAuth();
   const [name, setName] = useState(profile?.display_name ?? '');
   const [color, setColor] = useState(profile?.avatar_color ?? AVATAR_COLORS[5]);
@@ -65,6 +73,46 @@ export default function ProfileScreen() {
           </FadeIn>
 
           <FadeIn delay={80}>
+            <Card gap={12}>
+              <Heading>Appearance</Heading>
+              <View
+                flexDirection="row"
+                backgroundColor={brand.sunken}
+                borderRadius={radius.pill}
+                padding={3}
+              >
+                {APPEARANCE_OPTIONS.map((opt) => {
+                  const active = choice === opt.key;
+                  return (
+                    <Pressable key={opt.key} onPress={() => setChoice(opt.key)} style={{ flex: 1 }}>
+                      <View
+                        alignItems="center"
+                        justifyContent="center"
+                        paddingVertical={9}
+                        borderRadius={radius.pill}
+                        backgroundColor={active ? brand.surface : 'transparent'}
+                      >
+                        <Text
+                          fontSize={13}
+                          fontWeight="800"
+                          color={active ? brand.ink : brand.inkSoft}
+                        >
+                          {opt.label}
+                        </Text>
+                      </View>
+                    </Pressable>
+                  );
+                })}
+              </View>
+              <Muted>
+                {choice === 'system'
+                  ? `Following your device — currently ${scheme}.`
+                  : `Always ${choice}.`}
+              </Muted>
+            </Card>
+          </FadeIn>
+
+          <FadeIn delay={120}>
             <Card gap={6}>
               <Heading>Account</Heading>
               <Muted>{profile?.email}</Muted>

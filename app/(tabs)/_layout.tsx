@@ -1,6 +1,7 @@
 import { Tabs } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import { useAppearance } from '@/lib/appearance';
 import { brand } from '@/lib/theme';
 
 /** Content height of the bar, before the device's bottom inset. */
@@ -9,9 +10,13 @@ export const TAB_BAR_HEIGHT = 76;
 export default function TabsLayout() {
   // The bar has to clear the home indicator, or the labels get clipped.
   const insets = useSafeAreaInsets();
+  // React Navigation memoises screen options, so a parent re-render alone does
+  // not restyle the bar. Subscribing to the appearance context does.
+  const { scheme } = useAppearance();
 
   return (
     <Tabs
+      key={scheme}
       screenOptions={{
         headerShown: false,
         tabBarActiveTintColor: brand.primary,

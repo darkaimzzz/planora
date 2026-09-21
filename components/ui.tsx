@@ -6,51 +6,76 @@
 import type { ReactNode } from 'react';
 import { Pressable, type PressableProps } from 'react-native';
 import { MotiView } from 'moti';
-import { Spinner, Text, View, styled } from 'tamagui';
+import { Spinner, Text, View } from 'tamagui';
 import { PRESS_DEPTH, brand, radius, tint, type } from '@/lib/theme';
 
-export const Screen = styled(View, {
-  flex: 1,
-  backgroundColor: brand.bg,
-});
+// These are plain components rather than `styled(...)` on purpose: styled()
+// resolves its defaults once at module load, which would freeze the app in
+// whichever palette happened to be active then. Reading `brand` inside the
+// render is what lets the theme change.
+
+type ViewProps = React.ComponentProps<typeof View>;
+type TextProps = React.ComponentProps<typeof Text>;
+
+export function Screen(props: ViewProps) {
+  return <View flex={1} backgroundColor={brand.bg} {...props} />;
+}
 
 /** Apple's inset grouped card: generous radius, hairline border, soft lift. */
-export const Card = styled(View, {
-  backgroundColor: brand.surface,
-  borderRadius: radius.lg,
-  padding: 16,
-  gap: 10,
-  borderWidth: 1,
-  borderColor: brand.border,
-  shadowColor: brand.ink,
-  shadowOpacity: 0.06,
-  shadowRadius: 14,
-  shadowOffset: { width: 0, height: 4 },
-});
+export function Card(props: ViewProps) {
+  return (
+    <View
+      backgroundColor={brand.surface}
+      borderRadius={radius.lg}
+      padding={16}
+      gap={10}
+      borderWidth={1}
+      borderColor={brand.border}
+      shadowColor={brand.ink}
+      shadowOpacity={0.06}
+      shadowRadius={14}
+      shadowOffset={{ width: 0, height: 4 }}
+      {...props}
+    />
+  );
+}
 
-export const LargeTitle = styled(Text, { color: brand.ink, ...type.largeTitle });
-export const Title = styled(Text, { color: brand.ink, ...type.title });
-export const Heading = styled(Text, { color: brand.ink, ...type.headline });
-export const Body = styled(Text, { color: brand.ink, ...type.body });
-export const Callout = styled(Text, { color: brand.ink, ...type.callout });
-export const Muted = styled(Text, { color: brand.inkSoft, ...type.footnote });
+export function LargeTitle(props: TextProps) {
+  return <Text color={brand.ink} {...type.largeTitle} {...props} />;
+}
+export function Title(props: TextProps) {
+  return <Text color={brand.ink} {...type.title} {...props} />;
+}
+export function Heading(props: TextProps) {
+  return <Text color={brand.ink} {...type.headline} {...props} />;
+}
+export function Body(props: TextProps) {
+  return <Text color={brand.ink} {...type.body} {...props} />;
+}
+export function Callout(props: TextProps) {
+  return <Text color={brand.ink} {...type.callout} {...props} />;
+}
+export function Muted(props: TextProps) {
+  return <Text color={brand.inkSoft} {...type.footnote} {...props} />;
+}
 
 /** All-caps section label, the way iOS groups a list. */
-export const SectionLabel = styled(Text, {
-  color: brand.inkSoft,
-  ...type.caption,
-  textTransform: 'uppercase',
-});
+export function SectionLabel(props: TextProps) {
+  return <Text color={brand.inkSoft} {...type.caption} textTransform="uppercase" {...props} />;
+}
 
 export type Tone = 'primary' | 'success' | 'accent' | 'danger' | 'neutral';
 
-const TONES: Record<Tone, { face: any; edge: any; label: string }> = {
-  primary: { face: brand.primary, edge: brand.primaryDeep, label: '#FFFFFF' },
-  success: { face: brand.success, edge: brand.successDeep, label: '#FFFFFF' },
-  accent: { face: brand.accent, edge: brand.accentDeep, label: '#3A2A00' },
-  danger: { face: brand.danger, edge: brand.dangerDeep, label: '#FFFFFF' },
-  neutral: { face: brand.surface, edge: brand.border, label: '#1B2A5E' },
-};
+/** Resolved per render, so the tones follow the active palette. */
+function tones(): Record<Tone, { face: any; edge: any; label: string }> {
+  return {
+    primary: { face: brand.primary, edge: brand.primaryDeep, label: '#FFFFFF' },
+    success: { face: brand.success, edge: brand.successDeep, label: '#FFFFFF' },
+    accent: { face: brand.accent, edge: brand.accentDeep, label: '#3A2A00' },
+    danger: { face: brand.danger, edge: brand.dangerDeep, label: '#FFFFFF' },
+    neutral: { face: brand.surface, edge: brand.border, label: String(brand.ink) },
+  };
+}
 
 /**
  * The chunky press-down button. The face sits `PRESS_DEPTH` above a darker
@@ -76,7 +101,7 @@ export function PushButton({
   size?: 'lg' | 'sm';
   icon?: ReactNode;
 }) {
-  const t = TONES[tone];
+  const t = tones()[tone];
   const off = disabled || busy;
   const padV = size === 'lg' ? 16 : 10;
   const padH = size === 'lg' ? 24 : 16;
@@ -162,7 +187,7 @@ export function Chip({
   onPress?: () => void;
   tone?: Tone;
 }) {
-  const t = TONES[tone];
+  const t = tones()[tone];
   return (
     <Tappable onPress={onPress}>
       <View
@@ -190,8 +215,11 @@ export function Chip({
 export function Badge({ label, tone = 'primary' }: { label: string; tone?: Tone }) {
   const wash =
     tone === 'success' ? brand.successWash : tone === 'accent' ? brand.accentWash : brand.primaryWash;
-  const ink =
-    tone === 'success' ? brand.successDeep : tone === 'accent' ? brand.accentDeep : brand.primary;
+  // On a dark ground the 'deep' shade sits too close to its wash to read, so
+  // the brighter base hue carries the label instead.
+  const ink = brand.isDark
+    ? tone === 'success' ? brand.success : tone === 'accent' ? brand.accent : brand.primary
+    : tone === 'success' ? brand.successDeep : tone === 'accent' ? brand.accentDeep : brand.primary;
   return (
     <View backgroundColor={wash} paddingHorizontal={10} paddingVertical={4} borderRadius={radius.pill}>
       <Text color={ink} {...type.caption}>
@@ -203,7 +231,7 @@ export function Badge({ label, tone = 'primary' }: { label: string; tone?: Tone 
 
 /** Duolingo's lesson bar: rounded, chunky, springs as it fills. */
 export function ProgressBar({ value, tone = 'success' }: { value: number; tone?: Tone }) {
-  const t = TONES[tone];
+  const t = tones()[tone];
   const pct = Math.max(0, Math.min(1, value)) * 100;
   return (
     <View height={14} backgroundColor={brand.sunken} borderRadius={radius.pill} overflow="hidden">

@@ -21,9 +21,17 @@ export const config = createTamagui({
     ...defaultConfig.themes,
     light: {
       ...defaultConfig.themes.light,
-      background: '#fbfaf8',
-      color: '#1b2a5e',
-      borderColor: '#e6e4df',
+      background: '#FBFAF8',
+      color: '#1B2A5E',
+      borderColor: '#E7E5E0',
+      placeholderColor: '#767C96',
+    },
+    dark: {
+      ...defaultConfig.themes.dark,
+      background: '#12131A',
+      color: '#F2F3F8',
+      borderColor: '#32364A',
+      placeholderColor: '#9AA0B8',
     },
   },
 });

@@ -53,6 +53,8 @@ export default function JoinPlan() {
       });
   }, [loading, session, profile?.onboarded, token, joining, error, router]);
 
+  const styles = makeStyles();
+
   if (error) {
     return (
       <View style={styles.container}>
@@ -78,10 +80,13 @@ export default function JoinPlan() {
   );
 }
 
-const styles = StyleSheet.create({
+/** Per render, so the screen follows the active palette. */
+function makeStyles() {
+  return StyleSheet.create({
   container: { flex: 1, backgroundColor: brand.bg, alignItems: 'center', justifyContent: 'center', padding: 24, gap: 10 },
   title: { fontSize: 22, fontWeight: '700', color: brand.ink, textAlign: 'center' },
   sub: { fontSize: 15, color: brand.inkSoft, textAlign: 'center' },
   primary: { backgroundColor: brand.primary, borderRadius: 12, paddingVertical: 14, paddingHorizontal: 24, marginTop: 12 },
   primaryText: { color: '#fff', fontWeight: '600', fontSize: 16 },
-});
+  });
+}

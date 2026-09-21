@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Pressable } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useGlobalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -62,17 +63,19 @@ export default function PlanScreen() {
             {SECTIONS.map((s) => {
               const active = section === s.key;
               return (
-                // Tappable wraps its child in a Pressable, which does not take
-                // the flex itself — so the segment gets its width from here.
-                <View key={s.key} flex={1}>
-                <Tappable onPress={() => setSection(s.key)} style={{ flex: 1 }}>
+                // A plain Pressable, not Tappable: Tappable puts its style on an
+                // inner animated view, so the flex never reached the pressable
+                // itself. On web the segments still got width from the row; on a
+                // device they collapsed to nothing and the bar looked empty.
+                // The inner View needs no flex — a View's children stretch to its
+                // width by default.
+                <Pressable key={s.key} onPress={() => setSection(s.key)} style={{ flex: 1 }}>
                   <View
-                    flex={1}
                     flexDirection="row"
                     gap={5}
                     alignItems="center"
                     justifyContent="center"
-                    paddingVertical={8}
+                    paddingVertical={9}
                     borderRadius={radius.pill}
                     backgroundColor={active ? brand.surface : 'transparent'}
                     shadowColor={brand.ink}
@@ -82,19 +85,14 @@ export default function PlanScreen() {
                   >
                     <Ionicons
                       name={s.icon}
-                      size={15}
+                      size={14}
                       color={String(active ? brand.primary : brand.inkSoft)}
                     />
-                    <Text
-                      fontSize={12}
-                      fontWeight="800"
-                      color={active ? brand.ink : brand.inkSoft}
-                    >
+                    <Text fontSize={12} fontWeight="800" color={active ? brand.ink : brand.inkSoft}>
                       {s.label}
                     </Text>
                   </View>
-                </Tappable>
-                </View>
+                </Pressable>
               );
             })}
           </View>

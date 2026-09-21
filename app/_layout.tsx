@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { Stack, useRouter, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { TamaguiProvider } from 'tamagui';
+import { AppearanceProvider, useAppearance } from '@/lib/appearance';
 import { AuthProvider, useAuth } from '@/lib/auth';
 import { pendingInvite } from '@/lib/pendingInvite';
 import { Loader } from '@/components/ui';
@@ -51,13 +52,26 @@ function AuthGate() {
   );
 }
 
-export default function RootLayout() {
+/**
+ * Split out so it sits *inside* AppearanceProvider — it needs the resolved
+ * scheme to pick the Tamagui theme and the status-bar style.
+ */
+function Themed() {
+  const { scheme } = useAppearance();
   return (
-    <TamaguiProvider config={config} defaultTheme="light">
+    <TamaguiProvider config={config} defaultTheme={scheme}>
       <AuthProvider>
-        <StatusBar style="dark" />
+        <StatusBar style={scheme === 'dark' ? 'light' : 'dark'} />
         <AuthGate />
       </AuthProvider>
     </TamaguiProvider>
+  );
+}
+
+export default function RootLayout() {
+  return (
+    <AppearanceProvider>
+      <Themed />
+    </AppearanceProvider>
   );
 }

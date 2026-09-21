@@ -21,16 +21,36 @@ export const INDIGO = { base: '#5B5BD6', deep: '#4342AD', wash: '#ECECFB' };
 export const GRASS = { base: '#3DC05F', deep: '#2E9349', wash: '#E6F7EB' };
 export const SUNBEAM = { base: '#FFB020', deep: '#D78A08', wash: '#FFF4DF' };
 
-export const brand = {
-  // surfaces
+export type Palette = {
+  /** Lets a component pick a shade that reads well on the current ground. */
+  isDark: boolean;
+  bg: ColorTokens;
+  surface: ColorTokens;
+  sunken: ColorTokens;
+  border: ColorTokens;
+  ink: ColorTokens;
+  inkSoft: ColorTokens;
+  primary: ColorTokens;
+  primaryDeep: ColorTokens;
+  primaryWash: ColorTokens;
+  success: ColorTokens;
+  successDeep: ColorTokens;
+  successWash: ColorTokens;
+  accent: ColorTokens;
+  accentDeep: ColorTokens;
+  accentWash: ColorTokens;
+  danger: ColorTokens;
+  dangerDeep: ColorTokens;
+};
+
+export const lightPalette: Palette = {
+  isDark: false,
   bg: c('#FBFAF8'),
   surface: c('#FFFFFF'),
   sunken: c('#F2F1EE'),
   border: c('#E7E5E0'),
-  // ink
   ink: c('#1B2A5E'),
   inkSoft: c('#767C96'),
-  // the three
   primary: c(INDIGO.base),
   primaryDeep: c(INDIGO.deep),
   primaryWash: c(INDIGO.wash),
@@ -40,10 +60,56 @@ export const brand = {
   accent: c(SUNBEAM.base),
   accentDeep: c(SUNBEAM.deep),
   accentWash: c(SUNBEAM.wash),
-
   danger: c('#E4574C'),
   dangerDeep: c('#B93E35'),
 };
+
+/**
+ * Dark is not the light palette inverted. Surfaces lift as they come forward
+ * (bg darkest, cards lighter) the way iOS elevates in the dark, the three hues
+ * are brightened so they keep their punch against a dark ground, and the
+ * "wash" tints become low-opacity versions of their hue rather than pale
+ * pastels, which would glow.
+ */
+export const darkPalette: Palette = {
+  isDark: true,
+  bg: c('#12131A'),
+  surface: c('#1C1E27'),
+  sunken: c('#262935'),
+  border: c('#32364A'),
+  ink: c('#F2F3F8'),
+  inkSoft: c('#9AA0B8'),
+  primary: c('#8B8BF0'),
+  primaryDeep: c('#5B5BD6'),
+  primaryWash: c('#262a4d'),
+  success: c('#4FD97A'),
+  successDeep: c('#2E9349'),
+  successWash: c('#1B3527'),
+  accent: c('#FFC24D'),
+  accentDeep: c('#D78A08'),
+  accentWash: c('#3A2E12'),
+  danger: c('#FF7A6E'),
+  dangerDeep: c('#B93E35'),
+};
+
+/**
+ * The live palette.
+ *
+ * It is a mutable object rather than a value returned from a hook, because
+ * ~200 call sites across twenty files read `brand.primary` directly. Swapping
+ * the contents in place means the theme can change without rewriting all of
+ * them. AppearanceProvider sits at the root, so swapping it re-renders the
+ * whole tree with the new values. The rule this relies on: never destructure
+ * or capture `brand.x` at module scope — read it during render. That is why
+ * there are no `StyleSheet.create` colour values and no `styled()` defaults
+ * left in the app.
+ */
+export const brand: Palette = { ...lightPalette };
+
+/** Swap the live palette in place. Only AppearanceProvider should call this. */
+export function setPalette(next: Palette) {
+  Object.assign(brand, next);
+}
 
 /**
  * Apple's type scale, trimmed to what this app uses. Sizes are the HIG
@@ -73,13 +139,3 @@ export function initials(name: string) {
   return name.trim().slice(0, 1).toUpperCase() || '?';
 }
 
-/** Kept for the few screens still on StyleSheet. */
-export const colors = {
-  bg: brand.bg,
-  surface: brand.sunken,
-  border: brand.border,
-  text: brand.ink,
-  muted: brand.inkSoft,
-  accent: brand.primary,
-  danger: brand.danger,
-};
