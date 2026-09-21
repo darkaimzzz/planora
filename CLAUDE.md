@@ -399,3 +399,28 @@ PRD §10. Two real users complete the whole flow end to end. Polish is explicitl
     colours when everything else changed. The tabs layout now reads the
     appearance context and is keyed on the scheme.
   - Verified in the browser: Profile, Home and the tab bar all render dark.
+
+- **2026-09-21 — No web app: a static link handler instead.**
+  The Expo web build was only ever a test harness (no simulator on Windows),
+  but invite links still need an `https://` home. `landing/` is now a static
+  site with no app code:
+  - `index.html` — a plain "what Planora is" page.
+  - `join.html` — reads the token from the path, fetches the plan title through
+    `plan_preview`, offers "Open in Planora" (the `planora://` deep link) and
+    store links, and shows a clear expired state for a dead token.
+  - `.well-known/apple-app-site-association` and `assetlinks.json` — what makes
+    the link open the app rather than the browser. Both carry placeholders:
+    Apple Team ID, the domain, and the Android signing fingerprint from
+    `eas credentials`.
+  - `vercel.json` now deploys `landing/` with no build step at all, rewrites
+    `/join/:token`, and forces `application/json` on the association files —
+    iOS rejects the AASA otherwise.
+  - `app.json` gained `ios.associatedDomains` and an Android intent filter
+    (domain placeholder), and lost `expo.web` — the app is native-only.
+  - `0005_public_plan_preview.sql` grants `plan_preview` to `anon` so a
+    logged-out visitor sees which plan they were invited to. Verified the split
+    holds: anon **can** preview, **cannot** join. `join_plan_by_token` now says
+    "sign in to join a plan" instead of failing on a NOT NULL violation.
+  - Verified locally against the real database: a valid token renders
+    "Badminton on Thursday · 2 going" with the right deep link; an invalid one
+    renders the expired state. Native bundle still exports.

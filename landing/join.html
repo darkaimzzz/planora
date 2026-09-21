@@ -1,0 +1,209 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>Join a plan on Planora</title>
+    <meta name="description" content="You've been invited to a plan on Planora." />
+    <meta property="og:title" content="You're invited to a plan on Planora" />
+    <meta property="og:description" content="Pick when you're free and vote on the details." />
+    <meta name="theme-color" content="#5B5BD6" />
+    <link rel="icon" href="/favicon.ico" />
+    <style>
+      /*
+       * Deliberately a single static page, not the app.
+       * Its only job: hand the invite to the native app, or send someone who
+       * doesn't have it to the store. Everything below is inlined so the page
+       * paints in one round trip on a phone.
+       */
+      :root {
+        --bg: #fbfaf8;
+        --surface: #ffffff;
+        --sunken: #f2f1ee;
+        --border: #e7e5e0;
+        --ink: #1b2a5e;
+        --ink-soft: #767c96;
+        --primary: #5b5bd6;
+        --primary-deep: #4342ad;
+        --primary-wash: #ececfb;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --bg: #12131a;
+          --surface: #1c1e27;
+          --sunken: #262935;
+          --border: #32364a;
+          --ink: #f2f3f8;
+          --ink-soft: #9aa0b8;
+          --primary: #8b8bf0;
+          --primary-deep: #5b5bd6;
+          --primary-wash: #262a4d;
+        }
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        min-height: 100dvh;
+        display: grid;
+        place-items: center;
+        padding: 24px;
+        background: var(--bg);
+        color: var(--ink);
+        font: 500 17px/1.45 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+          "Helvetica Neue", Arial, sans-serif;
+        -webkit-font-smoothing: antialiased;
+      }
+      .card {
+        width: 100%;
+        max-width: 380px;
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 20px;
+        padding: 28px 24px;
+        text-align: center;
+        box-shadow: 0 4px 24px rgb(27 42 94 / 8%);
+      }
+      .mark {
+        width: 64px;
+        height: 64px;
+        margin: 0 auto 16px;
+        border: 3px solid var(--primary);
+        border-radius: 16px;
+        position: relative;
+        display: grid;
+        place-items: center;
+        font-size: 26px;
+        font-weight: 800;
+        color: var(--primary);
+      }
+      .mark::before,
+      .mark::after {
+        content: "";
+        position: absolute;
+        top: -9px;
+        width: 3px;
+        height: 12px;
+        border-radius: 2px;
+        background: var(--primary);
+      }
+      .mark::before { left: 15px; }
+      .mark::after { right: 15px; }
+      h1 { font-size: 22px; letter-spacing: -0.4px; margin: 0 0 4px; }
+      .sub { color: var(--ink-soft); font-size: 15px; margin: 0 0 22px; }
+      .plan {
+        background: var(--sunken);
+        border-radius: 14px;
+        padding: 14px;
+        margin: 0 0 22px;
+      }
+      .plan-title { font-size: 18px; font-weight: 800; }
+      .plan-meta { color: var(--ink-soft); font-size: 14px; text-transform: capitalize; }
+      /* The press-down button from the app, in CSS. */
+      .btn {
+        display: block;
+        width: 100%;
+        text-decoration: none;
+        font: 800 17px/1 inherit;
+        padding: 16px;
+        border-radius: 16px;
+        border: 0;
+        cursor: pointer;
+        color: #fff;
+        background: var(--primary);
+        box-shadow: 0 4px 0 var(--primary-deep);
+        transform: translateY(0);
+        transition: transform 60ms, box-shadow 60ms;
+      }
+      .btn:active { transform: translateY(4px); box-shadow: none; }
+      .btn.secondary {
+        margin-top: 12px;
+        color: var(--ink);
+        background: var(--surface);
+        border: 1px solid var(--border);
+        box-shadow: 0 4px 0 var(--border);
+      }
+      .stores { margin-top: 18px; display: none; gap: 10px; flex-direction: column; }
+      .stores.show { display: flex; }
+      .hint { color: var(--ink-soft); font-size: 13px; margin-top: 18px; }
+      .error { color: #e4574c; font-weight: 700; }
+    </style>
+  </head>
+  <body>
+    <main class="card">
+      <div class="mark" aria-hidden="true">✓</div>
+      <h1 id="heading">You're invited</h1>
+      <p class="sub" id="sub">Open this in Planora to join.</p>
+
+      <div class="plan" id="plan" hidden>
+        <div class="plan-title" id="plan-title"></div>
+        <div class="plan-meta" id="plan-meta"></div>
+      </div>
+
+      <a class="btn" id="open" href="#">Open in Planora</a>
+
+      <div class="stores" id="stores">
+        <a class="btn secondary" id="ios" href="#">Get it on the App Store</a>
+        <a class="btn secondary" id="android" href="#">Get it on Google Play</a>
+      </div>
+
+      <p class="hint" id="hint">Don't have the app yet? Install it, then tap the link again.</p>
+    </main>
+
+    <script>
+      // --- config -------------------------------------------------------
+      // The publishable key is meant to be public; plan_preview is a
+      // SECURITY DEFINER function that returns only a title and headcount for
+      // a valid invite token, which is exactly what the holder of the link is
+      // meant to see.
+      const SUPABASE_URL = 'https://tnjgqoznxgeymipbxqqs.supabase.co';
+      const SUPABASE_KEY = 'sb_publishable_Vfe6fcgpkb6cHWfY3XIxmA_JKODoxfB';
+      const APP_STORE_URL = '';   // fill in once the app is live
+      const PLAY_STORE_URL = '';  // fill in once the app is live
+
+      const token = decodeURIComponent(location.pathname.split('/').filter(Boolean).pop() || '');
+      const deepLink = 'planora://join/' + token;
+
+      document.getElementById('open').href = deepLink;
+
+      const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+      const isAndroid = /Android/.test(navigator.userAgent);
+
+      // Only show the store the visitor can actually use.
+      const stores = document.getElementById('stores');
+      const iosLink = document.getElementById('ios');
+      const androidLink = document.getElementById('android');
+      if (APP_STORE_URL) iosLink.href = APP_STORE_URL; else iosLink.remove();
+      if (PLAY_STORE_URL) androidLink.href = PLAY_STORE_URL; else androidLink.remove();
+      if (isIOS && !PLAY_STORE_URL) androidLink?.remove();
+      if (isAndroid && !APP_STORE_URL) iosLink?.remove();
+      if (stores.children.length) stores.classList.add('show');
+
+      // Show which plan it is, so the page isn't an anonymous wall.
+      // A failure here is cosmetic — the button still works.
+      if (token) {
+        fetch(SUPABASE_URL + '/rest/v1/rpc/plan_preview', {
+          method: 'POST',
+          headers: { apikey: SUPABASE_KEY, 'content-type': 'application/json' },
+          body: JSON.stringify({ p_token: token }),
+        })
+          .then((r) => (r.ok ? r.json() : null))
+          .then((rows) => {
+            const plan = Array.isArray(rows) ? rows[0] : rows;
+            if (!plan) {
+              document.getElementById('heading').textContent = 'This invite has expired';
+              document.getElementById('sub').innerHTML =
+                '<span class="error">The link is no longer valid.</span> Ask whoever sent it for a new one.';
+              document.getElementById('open').remove();
+              document.getElementById('hint').remove();
+              return;
+            }
+            document.getElementById('plan-title').textContent = plan.title;
+            document.getElementById('plan-meta').textContent =
+              plan.type + ' · ' + plan.attendee_count + ' going';
+            document.getElementById('plan').hidden = false;
+          })
+          .catch(() => {});
+      }
+    </script>
+  </body>
+</html>

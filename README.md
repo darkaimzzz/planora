@@ -79,7 +79,7 @@ votes and chat update live.
 | Command | What it does |
 |---|---|
 | `npm run dev` | Metro on port 8085 |
-| `npm run dev:web` | the same, opened in a browser |
+| `npm run dev:web` | the same in a browser — a test harness, not a product |
 | `npm run dev:clear` | same, clearing the bundler cache first |
 | `npm run seed` | resets, then creates the test accounts and plans |
 | `npm run reset` | deletes every `@planora.test` account and its data |
@@ -103,6 +103,19 @@ the rest stay on your machine and in Supabase.
 | `SUPABASE_ACCESS_TOKEN` | `deploy:function` only |
 | `EXPO_PUBLIC_GOOGLE_MAPS_API_KEY` | optional — turns on place search |
 | `ANTHROPIC_API_KEY` | set as an Edge Function secret, not here |
+
+### The landing page
+
+Planora is a native app; there is no web version. But an invite link has to be
+an  URL a friend can tap, so  is a static page — no build
+step, no app code — that shows which plan you were invited to and hands off to
+the app. It also serves the Apple and Android association files that let the
+link open the app directly instead of the browser.
+
+Deployed to Vercel from  (see ). Fill in the store URLs
+in  once the app is live, and replace the placeholders in
+ and  with your Apple Team ID, domain and Android
+signing fingerprint.
 
 ### Database
 
