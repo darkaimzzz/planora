@@ -107,15 +107,15 @@ the rest stay on your machine and in Supabase.
 ### The landing page
 
 Planora is a native app; there is no web version. But an invite link has to be
-an  URL a friend can tap, so  is a static page — no build
+an `https://` URL a friend can tap, so `landing/` is a static page — no build
 step, no app code — that shows which plan you were invited to and hands off to
 the app. It also serves the Apple and Android association files that let the
 link open the app directly instead of the browser.
 
-Deployed to Vercel from  (see ). Fill in the store URLs
-in  once the app is live, and replace the placeholders in
- and  with your Apple Team ID, domain and Android
-signing fingerprint.
+Vercel deploys `landing/` with no build step (see `vercel.json`). Before
+launch, fill in the store URLs in `landing/join.html`, and replace the
+placeholders in `landing/.well-known/` and `app.json` with your Apple Team ID,
+your domain, and the Android signing fingerprint from `eas credentials`.
 
 ### Database
 
