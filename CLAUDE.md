@@ -518,3 +518,19 @@ PRD §10. Two real users complete the whole flow end to end. Polish is explicitl
     verified and how, what is explicitly **not** verified (no device build, the
     guessed Jev API, Claude never run with a key), the known weak points, and
     the traps already hit so they aren't re-derived.
+
+- **2026-09-22 — Privacy policy, published.** `landing/privacy.html`, live at
+  `https://planorafun.vercel.app/privacy` — the URL both stores ask for.
+  - Written from the code, not from a template: the "what we collect" table is
+    the actual column list, the provider table names Supabase/AWS (Japan),
+    Vercel, Google (only on "Continue with Google"), Photon/OpenStreetMap and
+    Anthropic, and the local-storage section lists exactly the three keys the
+    app writes (session, appearance, pending invite). No analytics, no cookies,
+    no beacons — because there are none.
+  - Anthropic is disclosed ahead of the key being set, so enabling
+    `ANTHROPIC_API_KEY` doesn't need a policy change.
+  - Contact address is `xanderkamixd@gmail.com`; change it in
+    `landing/privacy.html` (two `mailto:` links) if a support address appears.
+  - `/privacy` rewrite added to `vercel.json`, linked from the landing page and
+    the invite page. Verified live: `/privacy`, `/privacy.html`, `/` and
+    `/join/<token>` all 200, no login wall.

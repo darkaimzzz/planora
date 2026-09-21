@@ -7,6 +7,10 @@
     {
       "source": "/join/:token",
       "destination": "/join.html"
+    },
+    {
+      "source": "/privacy",
+      "destination": "/privacy.html"
     }
   ],
   "headers": [
