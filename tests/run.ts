@@ -1,6 +1,6 @@
 // Plain assert checks. Run with: npm test
 import assert from 'node:assert/strict';
-import { bucketPlans, formatSlot, slotDay, type Plan } from '../lib/plans';
+import { bucketPlans, formatSlot, mapsUrl, slotDay, type Plan } from '../lib/plans';
 import { deriveRoadmap } from '../lib/roadmap';
 import {
   cellsToRows,
@@ -12,7 +12,6 @@ import {
   type Cell,
 } from '../lib/availability';
 import { monthGrid, plansByDay, weekGrid } from '../lib/calendar';
-import { mapsUrl } from '../lib/places';
 
 function plan(p: Partial<Plan>): Plan {
   return {

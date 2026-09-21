@@ -42,23 +42,3 @@ export async function searchPlaces(
     return { places: [], configured: false };
   }
 }
-
-/** A link that opens the place in whatever maps app the device has. */
-export function mapsUrl(plan: {
-  location_name: string | null;
-  location_place_id: string | null;
-  location_lat: number | null;
-  location_lng: number | null;
-}): string | null {
-  if (!plan.location_name) return null;
-  if (plan.location_place_id) {
-    return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
-      plan.location_name,
-    )}&query_place_id=${plan.location_place_id}`;
-  }
-  if (plan.location_lat != null && plan.location_lng != null) {
-    return `https://www.google.com/maps/search/?api=1&query=${plan.location_lat},${plan.location_lng}`;
-  }
-  return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(plan.location_name)}`;
-}
-
