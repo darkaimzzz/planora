@@ -534,3 +534,34 @@ PRD §10. Two real users complete the whole flow end to end. Polish is explicitl
   - `/privacy` rewrite added to `vercel.json`, linked from the landing page and
     the invite page. Verified live: `/privacy`, `/privacy.html`, `/` and
     `/join/<token>` all 200, no login wall.
+
+- **2026-09-22 — Real app icon, every size, from the supplied artwork.**
+  Source was a 784x1168 JPEG: a rounded coral tile on a white page with a
+  watermark in the corner. Shipping that as-is would have been wrong three
+  ways, so it was rebuilt rather than resized.
+  - **The rounded corners are gone.** Both platforms mask the icon themselves;
+    a pre-rounded source gets rounded twice and shows a corner inside a corner.
+    `icon.png` is full-bleed coral to the edge.
+  - **The colours are snapped, not resampled.** It is a two-colour design, so
+    every pixel is re-derived as a blend of the two exact flats
+    (tile `#FE5E4D`, glyph `#042E68`, both measured from the source rather than
+    eyeballed) weighted by distance. That kills the JPEG ringing, the white
+    page and the watermark in one pass, and keeps clean antialiasing.
+  - **`icon.png` has no alpha channel** (PNG colour type 2) — Apple rejects an
+    icon with one.
+  - Android adaptive layers regenerated properly: `foreground` is the glyph
+    alone on transparency at 58% of the canvas so nothing clips inside the 66%
+    safe circle, `background` is a solid coral plate, `monochrome` is the same
+    art as a pure alpha mask (Android supplies the colour). `adaptiveIcon
+    .backgroundColor` was still the Expo default `#E6F4FE` and now matches.
+  - `assets/favicon.png` and `landing/favicon.ico` (PNG-in-ICO, 64px) too, so
+    the invite and privacy pages stop serving the placeholder mark.
+  - Added `expo-splash-screen` and configured it — the launch screen was the
+    bare default. `splash-icon.png` is the glyph on the coral background.
+  - **`userInterfaceStyle` was still `"light"`**, which pins the OS-level
+    appearance regardless of the in-app dark mode. Now `"automatic"`.
+  - Generator was a throwaway `System.Drawing` script, not committed: no
+    ImageMagick or sharp on this machine and neither is worth a dependency for
+    one icon. Re-run means redoing it from the artwork.
+  - Verified: `npm run check` clean, `expo config` resolves every path, and
+    each output was opened and looked at.
