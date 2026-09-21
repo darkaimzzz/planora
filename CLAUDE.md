@@ -426,7 +426,7 @@ PRD §10. Two real users complete the whole flow end to end. Polish is explicitl
     renders the expired state. Native bundle still exports.
 
 - **2026-09-21 — Landing page live, Maps key moved server-side.**
-  - Deployed to **https://planora-olive-delta.vercel.app** from `landing/`,
+  - Deployed to **https://planorafun.vercel.app** from `landing/`,
     no build step. `/join/<token>` renders the real plan title from the live
     database; an unknown token renders the expired state. Both verified in a
     browser against production, not just by status code.
@@ -469,3 +469,33 @@ PRD §10. Two real users complete the whole flow end to end. Polish is explicitl
     after the query moved on. It was firing a request per keystroke, which
     wastes any provider's quota and costs real money on Google.
   - Google Sign-In stays free and needs no card — only Maps did.
+
+- **2026-09-22 — Full end-to-end pass, and two deployment bugs found.**
+  Google Sign-In is configured and correct: Supabase has the provider enabled,
+  and `/auth/v1/authorize?provider=google` redirects to Google's real sign-in
+  page with the right client id, callback and `email profile` scope — no
+  `redirect_uri_mismatch`, no `access_blocked`. (Completing an actual Google
+  login needs the user's own Google account, so that last hop is unverified.)
+  - **The invite domain was not stable.** `planora-olive-delta.vercel.app` was
+    a transient alias; it started returning `DEPLOYMENT_NOT_FOUND`, which would
+    have broken every invite link already sent. The project's real production
+    aliases are `planorafun.vercel.app` (now used everywhere),
+    `planora-mentary` and `planora-git-main-mentary`.
+  - **Vercel Deployment Protection was on** (`ssoProtection:
+    all_except_custom_domains`), so every landing URL redirected to a Vercel
+    SSO login — an invite link would have shown a login wall to anyone who
+    wasn't on the Vercel team. Disabled; verified 200 anonymously.
+  - Everything repointed at `planorafun.vercel.app`: `app.json`, `.env.local`,
+    Supabase `site_url` and allow-list.
+  - **Full flow re-verified:** sign in → create plan → search real places via
+    Photon (returned six Blue Tokai branches with Bengaluru addresses) →
+    shortlist two → put to a vote → drag availability (4 contiguous hours) →
+    save → time poll opens → vote → both polls close → "It's official — Full
+    E2E: Tuesday 22 Sept, 7 pm at Blue Tokai" posts to chat → roadmap 5 of 5 →
+    Home shows it under Locked in → theme toggle flips the app → the live
+    landing page renders that plan by name.
+  - Note: the Chrome extension could not be used — Chrome reported its tab as
+    `visibilityState: hidden`, which throttles rAF so entrance animations never
+    advance and the UI appears blank. Not an app bug (a real foreground tab is
+    fine), but it makes the extension unusable for this unless its window is in
+    the foreground.
