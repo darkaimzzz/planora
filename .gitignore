@@ -9,3 +9,4 @@ dist/
 *.png.tmp
 .tamagui/
 google-service-account.json
+dist/
