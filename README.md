@@ -101,8 +101,9 @@ the rest stay on your machine and in Supabase.
 | `EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | everything |
 | `SUPABASE_SECRET_KEY` | `seed` / `reset` only |
 | `SUPABASE_ACCESS_TOKEN` | `deploy:function` only |
-| `EXPO_PUBLIC_GOOGLE_MAPS_API_KEY` | optional — turns on place search |
-| `ANTHROPIC_API_KEY` | set as an Edge Function secret, not here |
+| `EXPO_PUBLIC_APP_URL` | the landing page invites point at |
+| `ANTHROPIC_API_KEY` | an Edge Function secret, not here |
+| `GOOGLE_MAPS_API_KEY` | an Edge Function secret too, and entirely optional — search already works via OpenStreetMap |
 
 ### The landing page
 
