@@ -48,12 +48,27 @@ export function VenueSection({
 
   const mapLink = mapsUrl(plan);
 
-  async function runSearch(text: string) {
-    setQuery(text);
-    const { places, configured } = await searchPlaces(text);
-    setResults(places);
-    setPlacesEnabled(configured);
-  }
+  // Typing fires a request per keystroke otherwise, which wastes quota on
+  // every provider and costs real money on Google. Wait for a pause, and
+  // ignore a response that arrives after the query has moved on.
+  useEffect(() => {
+    const q = query.trim();
+    if (q.length < 3) {
+      setResults([]);
+      return;
+    }
+    let current = true;
+    const timer = setTimeout(async () => {
+      const { places, configured } = await searchPlaces(q);
+      if (!current) return;
+      setResults(places);
+      setPlacesEnabled(configured);
+    }, 350);
+    return () => {
+      current = false;
+      clearTimeout(timer);
+    };
+  }, [query]);
 
   function addToShortlist(place: PlaceResult) {
     setError(null);
@@ -199,7 +214,7 @@ export function VenueSection({
               focusStyle={{ borderColor: brand.primary }}
               placeholder={placesEnabled ? 'Search a place…' : 'e.g. Dosa Corner'}
               value={query}
-              onChangeText={runSearch}
+              onChangeText={setQuery}
             />
           )}
 

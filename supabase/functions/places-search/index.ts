@@ -28,6 +28,67 @@ type PlaceResult = {
   lng: number | null;
 };
 
+/** Google Places (New) — used only when a key is configured. */
+async function searchGoogle(q: string, key: string): Promise<PlaceResult[]> {
+  const res = await fetch('https://places.googleapis.com/v1/places:searchText', {
+    method: 'POST',
+    headers: {
+      'content-type': 'application/json',
+      'X-Goog-Api-Key': key,
+      'X-Goog-FieldMask': 'places.id,places.displayName,places.formattedAddress,places.location',
+    },
+    body: JSON.stringify({ textQuery: q, maxResultCount: 6 }),
+  });
+  if (!res.ok) {
+    console.error('google places failed', res.status, (await res.text()).slice(0, 300));
+    return [];
+  }
+  const json = await res.json();
+  return (json.places ?? []).map((p: any) => ({
+    name: p.displayName?.text ?? 'Unnamed place',
+    address: p.formattedAddress ?? null,
+    placeId: p.id ?? null,
+    lat: p.location?.latitude ?? null,
+    lng: p.location?.longitude ?? null,
+  }));
+}
+
+/**
+ * Photon, the free default. No key, no card, no billing account.
+ *
+ * Nominatim would be the other obvious OSM option, but its usage policy
+ * explicitly rules out type-ahead; Photon is built for exactly that.
+ */
+async function searchPhoton(q: string): Promise<PlaceResult[]> {
+  const url = 'https://photon.komoot.io/api/?limit=6&q=' + encodeURIComponent(q);
+  const res = await fetch(url, { headers: { 'User-Agent': 'Planora/1.0 (group planning app)' } });
+  if (!res.ok) {
+    console.error('photon failed', res.status);
+    return [];
+  }
+  const json = await res.json();
+  return (json.features ?? []).map((f: any) => {
+    const p = f.properties ?? {};
+    // Photon returns address parts, not a formatted line — assemble one.
+    const address = [
+      [p.housenumber, p.street].filter(Boolean).join(' '),
+      p.city ?? p.district,
+      p.state,
+      p.country,
+    ]
+      .filter(Boolean)
+      .join(', ');
+    return {
+      name: p.name ?? p.street ?? 'Unnamed place',
+      address: address || null,
+      // OSM ids are stable enough to identify the place again later.
+      placeId: p.osm_type && p.osm_id ? `osm:${p.osm_type}${p.osm_id}` : null,
+      lat: f.geometry?.coordinates?.[1] ?? null,
+      lng: f.geometry?.coordinates?.[0] ?? null,
+    };
+  });
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS });
 
@@ -50,44 +111,13 @@ Deno.serve(async (req) => {
   try {
     const { query } = (await req.json().catch(() => ({}))) as { query?: string };
     const q = (query ?? '').trim();
-
-    // `configured: false` is how the app knows to fall back to a plain text
-    // field rather than pretending search is broken.
-    if (!key) return Response.json({ configured: false, places: [] }, { headers: CORS });
     if (q.length < 3) return Response.json({ configured: true, places: [] }, { headers: CORS });
 
-    const res = await fetch('https://places.googleapis.com/v1/places:searchText', {
-      method: 'POST',
-      headers: {
-        'content-type': 'application/json',
-        'X-Goog-Api-Key': key,
-        'X-Goog-FieldMask': 'places.id,places.displayName,places.formattedAddress,places.location',
-      },
-      body: JSON.stringify({ textQuery: q, maxResultCount: 6 }),
-    });
-
-    if (!res.ok) {
-      console.error('places lookup failed', res.status, (await res.text()).slice(0, 300));
-      return Response.json({ configured: true, places: [] }, { headers: CORS });
-    }
-
-    const json = (await res.json()) as {
-      places?: {
-        id: string;
-        displayName?: { text: string };
-        formattedAddress?: string;
-        location?: { latitude: number; longitude: number };
-      }[];
-    };
-
-    const places: PlaceResult[] = (json.places ?? []).map((p) => ({
-      name: p.displayName?.text ?? 'Unnamed place',
-      address: p.formattedAddress ?? null,
-      placeId: p.id,
-      lat: p.location?.latitude ?? null,
-      lng: p.location?.longitude ?? null,
-    }));
-
+    // Google needs a billing card even for its free allowance. Photon is
+    // OpenStreetMap-backed, needs no key and no card, and is built for
+    // type-ahead — so search works out of the box and only gets better (and
+    // more accurate on small businesses) if a Google key is ever added.
+    const places = key ? await searchGoogle(q, key) : await searchPhoton(q);
     return Response.json({ configured: true, places }, { headers: CORS });
   } catch (err) {
     console.error(err);

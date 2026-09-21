@@ -453,3 +453,19 @@ PRD §10. Two real users complete the whole flow end to end. Polish is explicitl
   sun/moon button beside the avatar that flips straight between light and dark
   (Profile keeps the three-way control, including "System"). Verified by
   tapping it in a browser: the icon and the whole screen flip.
+
+- **2026-09-21 — Place search works for free.** Google Maps requires a billing
+  card even for its free allowance, so it is no longer the default:
+  `places-search` uses **Photon** (OpenStreetMap) when `GOOGLE_MAPS_API_KEY` is
+  absent, and Google when it is present. Photon needs no key, no card and no
+  account. Nominatim was the other OSM option but its usage policy explicitly
+  forbids type-ahead; Photon is built for it.
+  - Verified live: "Blue Tokai Bengaluru" and "Starbucks London" both return
+    six results with real addresses and coordinates.
+  - Photon returns OSM ids, which mean nothing to Google Maps. `mapsUrl` now
+    skips `query_place_id` for an `osm:` id and uses the coordinates, with a
+    regression test both ways.
+  - The search input is debounced (350ms) and ignores a response that arrives
+    after the query moved on. It was firing a request per keystroke, which
+    wastes any provider's quota and costs real money on Google.
+  - Google Sign-In stays free and needs no card — only Maps did.

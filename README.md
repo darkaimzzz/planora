@@ -43,7 +43,7 @@ Ties break on availability count first, then earliest slot.
 | Backend | Supabase — Postgres, Auth, Realtime, Edge Functions |
 | Auth | Email/password **and** Google OAuth |
 | Invites | Expo Router deep links |
-| Places | Google Places (optional — free text without a key) |
+| Places | OpenStreetMap via Photon — no key, no card. Upgrades to Google Places if a key is set |
 | Prose AI | Claude API — the confirmation message |
 | Decision AI | Jev (TypeSafe AI) — typed "has this poll resolved?" checks |
 

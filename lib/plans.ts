@@ -79,7 +79,10 @@ export function mapsUrl(plan: {
   location_lng: number | null;
 }): string | null {
   if (!plan.location_name) return null;
-  if (plan.location_place_id) {
+  // `osm:` ids come from the free OpenStreetMap provider and mean nothing to
+  // Google — feeding one to query_place_id lands on the wrong place, so fall
+  // through to coordinates instead.
+  if (plan.location_place_id && !plan.location_place_id.startsWith('osm:')) {
     return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
       plan.location_name,
     )}&query_place_id=${plan.location_place_id}`;

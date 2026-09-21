@@ -310,4 +310,28 @@ const now = new Date('2026-06-15T12:00:00Z');
   assert.equal(gridDays(new Date(2026, 11, 31))[1], '2027-01-01');
 }
 
+// An OpenStreetMap id must not be handed to Google as a place id — it would
+// resolve to the wrong place, so the link falls back to coordinates.
+{
+  const osm = mapsUrl({
+    location_name: 'Dosa Corner',
+    location_place_id: 'osm:N123456',
+    location_lat: 12.9,
+    location_lng: 77.6,
+  })!;
+  assert.doesNotMatch(osm, /query_place_id/, 'an osm id is never sent to Google as a place id');
+  assert.match(osm, /query=12.9,77.6/, 'it uses the coordinates instead');
+
+  // A real Google id still deep-links by id.
+  assert.match(
+    mapsUrl({
+      location_name: 'Dosa Corner',
+      location_place_id: 'ChIJabc123',
+      location_lat: null,
+      location_lng: null,
+    })!,
+    /query_place_id=ChIJabc123/,
+  );
+}
+
 console.log('ok');
