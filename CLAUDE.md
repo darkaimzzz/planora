@@ -739,3 +739,28 @@ PRD §10. Two real users complete the whole flow end to end. Polish is explicitl
   - Lesson: *verifying immediately after deploying is not enough when a second,
     slower pipeline can overwrite production a minute later.* Verify, and make
     the verification part of the only deploy path.
+
+- **2026-09-22 — The app installed, then died before its first frame.**
+  `lib/supabase.ts` throws at module load when `EXPO_PUBLIC_SUPABASE_URL` /
+  `..._PUBLISHABLE_KEY` are missing. **`EXPO_PUBLIC_*` values are inlined from
+  the environment of the build, and `.env.local` is gitignored while EAS builds
+  from git — so the build had no values and every launch crashed instantly.**
+  Proved by searching the APK: it contained the *name*
+  `EXPO_PUBLIC_SUPABASE_URL` but not the project ref `tnjgqoznxgeymipbxqqs`,
+  and not `planorafun.vercel.app`. Hermes keeps string literals, so a byte
+  search of the binary answers "did this value make it into the build?".
+  - Fixed with an `env` block on an eas.json `base` profile that every other
+    profile extends, so a future `production` build can't miss them the same
+    way. These three are public by design — the publishable key already ships
+    in `landing/join.html` and inside any bundle; RLS is the protection, not
+    secrecy.
+  - **`npm run release` now refuses to publish an APK that doesn't contain the
+    Supabase project ref**, naming the eas.json `env` block in the error.
+  - `npm run deploy`'s APK check now retries with a cache-buster: an edge node
+    served the *previous* deployment's file for a few seconds after the alias
+    moved, which looks exactly like a failed upload. It caught a real staleness
+    on the first run.
+  - **Both launch-blocking bugs this session (missing native peers, missing
+    build-time env) were invisible to the browser harness and would have been
+    caught by one install.** Build the APK and open it before believing
+    anything about the app.

@@ -5,6 +5,7 @@
   },
   "build": {
     "development": {
+      "extends": "base",
       "developmentClient": true,
       "distribution": "internal",
       "ios": {
@@ -12,23 +13,33 @@
       }
     },
     "preview": {
+      "extends": "base",
       "distribution": "internal",
       "ios": {
         "simulator": false
       }
     },
     "production": {
+      "extends": "base",
       "autoIncrement": true,
       "ios": {
         "resourceClass": "m-medium"
       }
     },
     "apk": {
+      "extends": "base",
       "android": {
         "buildType": "apk",
         "gradleCommand": ":app:assembleRelease -PreactNativeArchitectures=arm64-v8a,armeabi-v7a"
       },
       "distribution": "internal"
+    },
+    "base": {
+      "env": {
+        "EXPO_PUBLIC_SUPABASE_URL": "https://tnjgqoznxgeymipbxqqs.supabase.co",
+        "EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY": "sb_publishable_Vfe6fcgpkb6cHWfY3XIxmA_JKODoxfB",
+        "EXPO_PUBLIC_APP_URL": "https://planorafun.vercel.app"
+      }
     }
   },
   "submit": {

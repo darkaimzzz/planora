@@ -120,6 +120,29 @@ function signingFingerprint(buf) {
   return null;
 }
 
+/**
+ * Refuse to publish an APK that has no backend baked into it.
+ *
+ * `EXPO_PUBLIC_*` values are inlined into the JS bundle at build time. They
+ * come from the environment of the *build*, and `.env.local` is gitignored, so
+ * an EAS build that isn't given them in eas.json produces an app where
+ * `lib/supabase.ts` throws at module load: it installs fine and dies before
+ * drawing a frame. That shipped once. Hermes keeps string literals, so the
+ * project ref is findable in the binary if it made it in.
+ */
+function assertConfigured(buf) {
+  const ref = new URL(required('EXPO_PUBLIC_SUPABASE_URL')).hostname.split('.')[0];
+  if (buf.includes(Buffer.from(ref, 'latin1'))) {
+    console.log(`config check: Supabase project "${ref}" is baked into the bundle`);
+    return;
+  }
+  console.error(`This APK does not contain the Supabase project ref "${ref}".
+The build was not given EXPO_PUBLIC_* values, so the app will crash on launch.
+Check the \`env\` block on the eas.json build profile, then rebuild.`);
+  process.exit(1);
+}
+assertConfigured(file);
+
 const appConfig = JSON.parse(readFileSync('app.json', 'utf8')).expo;
 const fingerprint =
   (await fingerprintFromEas(appConfig.extra?.eas?.projectId)) ?? signingFingerprint(file);

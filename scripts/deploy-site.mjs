@@ -67,10 +67,23 @@ for (const path of ['/', '/privacy', '/download', '/release.json', '/.well-known
 }
 
 // The one that actually matters.
-const res = await fetch(`${SITE}/planora.apk`);
+//
+// Retried with a cache-buster: an edge node can still be handing out the
+// previous deployment's file for a few seconds after the alias moves, and a
+// stale hit here looks identical to a failed upload.
+let res;
+let served = Buffer.alloc(0);
+for (let attempt = 1; attempt <= 6; attempt++) {
+  res = await fetch(`${SITE}/planora.apk?cb=${Date.now()}`);
+  if (res.ok) {
+    served = Buffer.from(await res.arrayBuffer());
+    if (served.length === release.bytes) break;
+    console.log(`  …edge still on the previous file (${served.length}), retrying`);
+  }
+  await new Promise((r) => setTimeout(r, 5000));
+}
 check('/planora.apk responds', res.ok, String(res.status));
 if (res.ok) {
-  const served = Buffer.from(await res.arrayBuffer());
   check('served size matches', served.length === release.bytes, `${served.length} vs ${release.bytes}`);
   check('served sha256 matches', createHash('sha256').update(served).digest('hex') === release.sha256);
   check('is a zip/apk', served.subarray(0, 2).toString() === 'PK');
