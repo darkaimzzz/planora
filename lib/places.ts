@@ -24,7 +24,7 @@ export type PlaceResult = {
  */
 export async function searchPlaces(
   query: string,
-): Promise<{ places: PlaceResult[]; configured: boolean }> {
+): Promise<{ places: PlaceResult[]; configured: boolean; error?: string }> {
   const q = query.trim();
   if (q.length < 3) return { places: [], configured: true };
 
@@ -38,7 +38,11 @@ export async function searchPlaces(
       configured: data?.configured !== false,
     };
   } catch (err) {
+    // Falling back to a plain text field is right, but doing it silently meant
+    // a broken search looked identical to a working one with no results — and
+    // left nothing to diagnose from a phone. Say what happened.
+    const message = err instanceof Error ? err.message : String(err);
     console.warn('place search unavailable; falling back to free text', err);
-    return { places: [], configured: false };
+    return { places: [], configured: false, error: message };
   }
 }

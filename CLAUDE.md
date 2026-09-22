@@ -764,3 +764,45 @@ PRD §10. Two real users complete the whole flow end to end. Polish is explicitl
     build-time env) were invisible to the browser harness and would have been
     caught by one install.** Build the APK and open it before believing
     anything about the app.
+
+- **2026-09-22 — Device testing, round one: the crash, and how it was found.**
+  The app installed and opened, then died on **Save availability**. The
+  database showed why it wasn't a save bug: the rows landed, the plan moved to
+  `voting`, and the time poll opened 41 seconds later. The crash was in
+  rendering the screen it returned to.
+  - **Root cause: PostgREST timestamps are not ISO 8601.** It returns
+    `2026-09-23 08:00:00+00` — a space instead of `T`, and a two-digit offset.
+    V8 parses that leniently, so every browser test passed; **Hermes returns
+    Invalid Date**, and `slotDay`'s `toISOString()` then throws a RangeError
+    and takes the process down. `toDate()` in `lib/plans.ts` normalises the
+    format and every parse goes through it; `formatSlot` returns `—` and
+    `slotDay` returns `''` rather than throwing. Nine asserts cover the exact
+    strings the database emits.
+  - **A release build has no red box** — an uncaught render error just ends the
+    process, which is why "it instantly closes" was the only symptom available.
+    `components/ErrorBoundary.tsx` now shows the message with a copy button.
+  - Place search failing silently was the same class of problem: the client
+    caught the error and fell back to free text, so broken looked identical to
+    "no results". It names the failure now.
+  - UX from the same session: saving availability routes to the Vote section
+    instead of dropping you back where you were, the Vote segment shows a dot
+    when a poll needs you, and both entry points say "Edit availability" once
+    you have marked (`usePlanData` exposes `iMarkedAvailability`).
+
+- **2026-09-22 — Vercel fetches the APK; nothing is uploaded from here.**
+  Publishing a build took 65 minutes of EAS queue and then nearly an hour more
+  of downloading, because **Expo's artifact CDN throttles this machine to
+  ~20 KB/s while Vercel gets 690 KB/s from the same connection** — and it
+  answers range requests with 403, so resume is impossible.
+  - `scripts/vercel-build.mjs` is now the `buildCommand`: it fetches the
+    artifact during Vercel's build, **refuses to publish** anything that isn't
+    a complete zip with a v2/v3 signing block and the Supabase ref inside, and
+    derives `release.json` (size, sha256) from the bytes it fetched.
+  - `landing/release.source.json` is the committed input — version, artifact
+    URL, fingerprint. `landing/release.json` is now generated, so it is
+    gitignored.
+  - `npm run release` no longer downloads anything: it asks EAS for the latest
+    finished build and records its artifact URL and signing fingerprint.
+  - This also closes the earlier trap for good: a deployment built from the
+    repository is now complete on its own, so a git push can no longer produce
+    a site with no download.

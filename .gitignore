@@ -19,3 +19,6 @@ landing/planora.apk
 
 # One-off audit scratch from an external review; superseded by scripts/audit.mjs
 audit/
+
+# Written by the Vercel build from release.source.json.
+landing/release.json

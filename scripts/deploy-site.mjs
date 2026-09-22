@@ -25,23 +25,13 @@ const APK = 'landing/planora.apk';
 const token = required('VERCEL_TOKEN');
 
 // ---------------------------------------------------------- preflight
-if (!existsSync(APK)) {
-  console.error(`${APK} is missing. Run \`npm run release\` first — deploying without it
-would publish a site whose download button 404s.`);
-  process.exit(1);
-}
-const release = JSON.parse(readFileSync('landing/release.json', 'utf8'));
-const local = readFileSync(APK);
-const localSha = createHash('sha256').update(local).digest('hex');
-
-if (statSync(APK).size !== release.bytes || localSha !== release.sha256) {
-  console.error(`${APK} does not match landing/release.json.
-  on disk:      ${statSync(APK).size} bytes, sha ${localSha.slice(0, 16)}…
-  release.json: ${release.bytes} bytes, sha ${release.sha256.slice(0, 16)}…
-Run \`npm run release\` to regenerate them together.`);
-  process.exit(1);
-}
-console.log(`preflight ok — ${release.size}, v${release.version}, sha ${localSha.slice(0, 16)}…`);
+//
+// The APK is fetched by Vercel's build (scripts/vercel-build.mjs), not
+// uploaded from here, so there is nothing local to check. What matters is what
+// the site ends up serving, which is verified below against the release.json
+// the build itself wrote.
+const source = JSON.parse(readFileSync('landing/release.source.json', 'utf8'));
+console.log(`releasing v${source.version} (${source.build}) from ${source.artifactUrl}`);
 
 // ------------------------------------------------------------- deploy
 console.log('deploying…');
@@ -71,6 +61,9 @@ for (const path of ['/', '/privacy', '/download', '/release.json', '/.well-known
 // Retried with a cache-buster: an edge node can still be handing out the
 // previous deployment's file for a few seconds after the alias moves, and a
 // stale hit here looks identical to a failed upload.
+const release = await (await fetch(`${SITE}/release.json?cb=${Date.now()}`)).json();
+check('release.json is the version we just built', release.version === source.version, release.version);
+
 let res;
 let served = Buffer.alloc(0);
 for (let attempt = 1; attempt <= 6; attempt++) {
@@ -94,8 +87,13 @@ if (res.ok) {
   );
 }
 
-const live = await (await fetch(`${SITE}/release.json`)).json().catch(() => null);
-check('release.json matches the file served', live?.sha256 === release.sha256);
+  check(
+    'the app config is baked in',
+    served.includes(Buffer.from(source.supabaseRef, 'latin1')),
+    'else it crashes on launch',
+  );
+  const eocd = served.lastIndexOf(Buffer.from([0x50, 0x4b, 0x05, 0x06]));
+  check('complete zip (not truncated)', eocd > 0);
 
 console.log(failures ? `\n${failures} check(s) failed — the site is NOT serving the release.` : '\nall checks passed.');
 process.exit(failures ? 1 : 0);

@@ -132,7 +132,10 @@ export default function Availability() {
     // Everyone in? Then this save is what opens the time poll.
     await advancePlan(id);
     setSaving(false);
-    router.back();
+    // Land on Vote rather than wherever they came from: saving availability is
+    // what opens the time poll, and hunting for the right tab afterwards was
+    // the confusing part.
+    router.replace({ pathname: '/plan/[id]', params: { id, section: 'voting' } });
   }
 
   const styles = makeStyles();

@@ -1,6 +1,6 @@
 // Plain assert checks. Run with: npm test
 import assert from 'node:assert/strict';
-import { bucketPlans, formatSlot, mapsUrl, slotDay, type Plan } from '../lib/plans';
+import { bucketPlans, formatSlot, mapsUrl, slotDay, toDate, type Plan } from '../lib/plans';
 import { deriveRoadmap } from '../lib/roadmap';
 import {
   cellsToRows,
@@ -371,4 +371,25 @@ console.log('ok');
   assert.equal(isNewer('1.0.0', '1.0.0'), false, 'the same version is not an update');
   assert.equal(isNewer('0.9.9', '1.0.0'), false, 'never offer a downgrade');
   assert.equal(isNewer('1.0.1', '1.0'), true, 'a shorter current version still compares');
+}
+
+// ------------------------------------------- Postgres timestamp parsing
+{
+  // PostgREST returns "2026-09-23 08:00:00+00" — a space, and a two-digit
+  // offset. V8 parses it; Hermes does not, which crashed the app on device
+  // while every browser test passed.
+  const pg = '2026-09-23 08:00:00+00';
+  assert.equal(toDate(pg).toISOString(), '2026-09-23T08:00:00.000Z', 'the shape Postgres actually sends');
+  assert.equal(slotDay(pg), '2026-09-23');
+  assert.equal(formatSlot(pg).length > 0, true);
+
+  // Still handles proper ISO, offsets with minutes, Z, and microseconds.
+  assert.equal(toDate('2026-09-23T08:00:00+00:00').toISOString(), '2026-09-23T08:00:00.000Z');
+  assert.equal(toDate('2026-09-23T08:00:00Z').toISOString(), '2026-09-23T08:00:00.000Z');
+  assert.equal(toDate('2026-09-23 13:30:00+05:30').toISOString(), '2026-09-23T08:00:00.000Z');
+  assert.equal(toDate('2026-09-22 13:35:09.557361+00').toISOString(), '2026-09-22T13:35:09.557Z');
+
+  // Garbage must not throw — it used to take the whole screen down.
+  assert.equal(slotDay('not a date'), '', 'no RangeError from toISOString');
+  assert.equal(formatSlot('not a date'), '—');
 }

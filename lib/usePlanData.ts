@@ -10,6 +10,7 @@ export type PlanData = {
   plan: Plan | null;
   attendees: Attendee[];
   roadmap: RoadmapInput;
+  iMarkedAvailability: boolean;
   loading: boolean;
   /** Set when the last load failed, so screens can offer a retry. */
   error: string | null;
@@ -27,6 +28,7 @@ export function usePlanData(planId: string | undefined): PlanData {
   const [availabilityCount, setAvailabilityCount] = useState(0);
   const [timePoll, setTimePoll] = useState<PollSummary | null>(null);
   const [venuePoll, setVenuePoll] = useState<PollSummary | null>(null);
+  const [iMarkedAvailability, setIMarkedAvailability] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   // Roadmap, Voting and Details each run this hook. A shared channel name means
@@ -54,7 +56,11 @@ export function usePlanData(planId: string | undefined): PlanData {
 
     setPlan(planRow);
     setAttendees(attendeeRows);
-    setAvailabilityCount(new Set((availabilityRows.data ?? []).map((r) => r.user_id)).size);
+    const markers = new Set((availabilityRows.data ?? []).map((r) => r.user_id));
+    setAvailabilityCount(markers.size);
+    // Whether *you* have marked decides whether the button says Mark or Edit.
+    const { data: me } = await supabase.auth.getUser();
+    setIMarkedAvailability(!!me.user && markers.has(me.user.id));
 
     const polls = (pollRows.data ?? []) as { id: string; poll_type: string; status: 'open' | 'closed' }[];
     const summarise = async (pollType: string): Promise<PollSummary | null> => {
@@ -96,6 +102,7 @@ export function usePlanData(planId: string | undefined): PlanData {
   return {
     plan,
     attendees,
+    iMarkedAvailability,
     loading,
     error,
     reload,

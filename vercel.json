@@ -1,5 +1,5 @@
 {
-  "buildCommand": null,
+  "buildCommand": "node scripts/vercel-build.mjs",
   "outputDirectory": "landing",
   "installCommand": null,
   "framework": null,

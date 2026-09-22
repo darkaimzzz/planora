@@ -10,7 +10,7 @@ import { brand } from '@/lib/theme';
 import { Badge, Card, ErrorState, FadeIn, Heading, Loader, Muted, ProgressBar, PushButton, Screen, Title } from '@/components/ui';
 
 export function RoadmapPanel({ id }: { id: string }) {
-  const { plan, roadmap, loading, error, reload } = usePlanData(id);
+  const { plan, roadmap, iMarkedAvailability, loading, error, reload } = usePlanData(id);
   const router = useRouter();
 
   if (loading) return <Loader />;
@@ -108,7 +108,7 @@ export function RoadmapPanel({ id }: { id: string }) {
           </FadeIn>
         ) : (
           <PushButton
-            label="Mark my availability"
+            label={iMarkedAvailability ? 'Edit availability' : 'Mark my availability'}
             onPress={() => router.push(`/plan/${id}/availability`)}
           />
         )}

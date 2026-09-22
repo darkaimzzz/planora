@@ -30,6 +30,7 @@ export function VenueSection({
   // Optimistic: assume search works until the server says it has no key, so
   // the field does not flash the fallback wording on every open.
   const [placesEnabled, setPlacesEnabled] = useState(true);
+  const [searchError, setSearchError] = useState<string | null>(null);
   const [shortlist, setShortlist] = useState<PlaceResult[]>([]);
   const [venueVoteOpen, setVenueVoteOpen] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -59,10 +60,11 @@ export function VenueSection({
     }
     let current = true;
     const timer = setTimeout(async () => {
-      const { places, configured } = await searchPlaces(q);
+      const { places, configured, error: failure } = await searchPlaces(q);
       if (!current) return;
       setResults(places);
       setPlacesEnabled(configured);
+      setSearchError(failure ?? null);
     }, 350);
     return () => {
       current = false;
@@ -168,7 +170,7 @@ export function VenueSection({
           <Muted>
             {placesEnabled
               ? 'Search and add two or three places. Add just one to skip the vote.'
-              : 'Type a place and add it. Two or three go to a vote; one skips it. Add a Google Maps key to search real places.'}
+              : 'Search is unavailable right now, so type the place name instead. Two or three go to a vote; one skips it.'}
           </Muted>
 
           {shortlist.map((p, i) => (
@@ -216,6 +218,14 @@ export function VenueSection({
               value={query}
               onChangeText={setQuery}
             />
+          )}
+
+          {/* A silent fallback made a broken search look like a working one
+              with no matches. Show the reason so it can be reported. */}
+          {searchError && (
+            <Muted fontSize={12} color={brand.danger}>
+              Place search failed: {searchError}
+            </Muted>
           )}
 
           {results.map((p) => (

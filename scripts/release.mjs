@@ -1,183 +1,98 @@
-// Publish a build: fetch the finished APK from EAS, describe it, and stage it
-// for the website. Run with: npm run release
+// Point the website at the latest finished Android build. Run: npm run release
 //
-// The site is deliberately dumb — one APK at a fixed path plus a small JSON
-// file of facts about it — so shipping a version is "run this, then deploy",
-// with nothing to edit by hand.
-import { createHash } from 'node:crypto';
-import { execFileSync } from 'node:child_process';
-import { readFileSync, writeFileSync, statSync } from 'node:fs';
-import { inflateRawSync } from 'node:zlib';
-import { X509Certificate } from 'node:crypto';
+// This used to download the 57 MB artifact and re-upload it at deploy time.
+// Expo's CDN throttles this machine to ~20 KB/s (Vercel gets 690 KB/s from the
+// same connection), so that took the best part of an hour. Now the only thing
+// recorded here is *which* build to publish; Vercel's build fetches it, checks
+// it, and derives the size and checksum — see scripts/vercel-build.mjs.
+//
+// After this, run `npm run deploy`.
+import { readFileSync, writeFileSync } from 'node:fs';
 
 import { required } from './env.mjs';
 
-const APK = 'landing/planora.apk';
-// Same place as every other credential: .env.local, never committed.
+const SOURCE = 'landing/release.source.json';
 const token = required('EXPO_TOKEN');
+const appConfig = JSON.parse(readFileSync('app.json', 'utf8')).expo;
+const projectId = appConfig.extra?.eas?.projectId;
 
-// ------------------------------------------------------------ find the build
-const raw = execFileSync(
-  'npx',
-  ['--yes', 'eas-cli@latest', 'build:list', '--platform', 'android', '--limit', '10', '--json', '--non-interactive'],
-  { env: { ...process.env, EXPO_TOKEN: token }, encoding: 'utf8', maxBuffer: 32 * 1024 * 1024, shell: true },
+const gql = async (query, variables = {}) => {
+  const res = await fetch('https://api.expo.dev/graphql', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json', authorization: `Bearer ${token}` },
+    body: JSON.stringify({ query, variables }),
+  });
+  const json = await res.json();
+  if (json.errors) throw new Error(json.errors.map((e) => e.message).join('; '));
+  return json.data;
+};
+
+// ------------------------------------------------- the build to publish
+const data = await gql(
+  `query($appId: String!) {
+    app { byId(appId: $appId) { builds(limit: 10, offset: 0, filter: { platform: ANDROID }) {
+      id status appVersion appBuildVersion artifacts { applicationArchiveUrl }
+    } } }
+  }`,
+  { appId: projectId },
 );
-const builds = JSON.parse(raw.slice(raw.indexOf('[')));
-const build = builds.find((b) => b.status === 'FINISHED' && b.artifacts?.applicationArchiveUrl);
+const build = (data?.app?.byId?.builds ?? []).find(
+  (b) => b.status === 'FINISHED' && b.artifacts?.applicationArchiveUrl,
+);
 if (!build) {
-  console.error('No finished Android build with an artifact. Statuses:', builds.map((b) => b.status).join(', '));
+  console.error('No finished Android build with an artifact. Run `npm run build:apk` first.');
   process.exit(1);
 }
-console.log(`build ${build.id}  ${build.status}  ${build.appVersion} (${build.appBuildVersion})`);
 
-// ---------------------------------------------------------------- download it
-const res = await fetch(build.artifacts.applicationArchiveUrl);
-if (!res.ok) {
-  console.error('download failed', res.status);
-  process.exit(1);
-}
-writeFileSync(APK, Buffer.from(await res.arrayBuffer()));
-const bytes = statSync(APK).size;
-const file = readFileSync(APK);
-const sha256 = createHash('sha256').update(file).digest('hex');
-console.log(`${APK}  ${(bytes / 1048576).toFixed(1)} MB  sha256 ${sha256.slice(0, 16)}…`);
-
-/**
- * Signing certificate fingerprint, for .well-known/assetlinks.json.
- *
- * Asked of EAS directly: it holds the keystore, and modern builds are signed
- * with the v2/v3 scheme only, so there is no META-INF/*.RSA in the APK to read
- * and no keytool on this machine either. `signingFingerprint()` below is the
- * fallback for a v1-signed build.
- */
-async function fingerprintFromEas(projectId) {
-  const query = `query($appId: String!) {
+// --------------------------------------------------- the signing fingerprint
+// Read from EAS rather than the APK: builds are signed with the v2/v3 scheme
+// only, so there is no v1 block in the file to read a certificate out of.
+const creds = await gql(
+  `query($appId: String!) {
     app { byId(appId: $appId) { androidAppCredentials {
       androidAppBuildCredentialsList { isDefault androidKeystore { sha256CertificateFingerprint } }
     } } }
-  }`;
-  try {
-    const res = await fetch('https://api.expo.dev/graphql', {
-      method: 'POST',
-      headers: { 'content-type': 'application/json', authorization: `Bearer ${token}` },
-      body: JSON.stringify({ query, variables: { appId: projectId } }),
-    });
-    const json = await res.json();
-    const creds = json?.data?.app?.byId?.androidAppCredentials?.[0]?.androidAppBuildCredentialsList ?? [];
-    const hex = (creds.find((c) => c.isDefault) ?? creds[0])?.androidKeystore?.sha256CertificateFingerprint;
-    if (!hex) return null;
-    // Android wants colon-separated uppercase pairs, not a bare hex string.
-    return hex.toUpperCase().match(/../g).join(':');
-  } catch {
-    return null;
-  }
-}
+  }`,
+  { appId: projectId },
+);
+const list = creds?.app?.byId?.androidAppCredentials?.[0]?.androidAppBuildCredentialsList ?? [];
+const hex = (list.find((c) => c.isDefault) ?? list[0])?.androidKeystore?.sha256CertificateFingerprint;
+const fingerprint = hex ? hex.toUpperCase().match(/../g).join(':') : null;
 
-/**
- * Fallback: pull the certificate out of the APK's own v1 (JAR) signature.
- * Only works if the build was signed with the v1 scheme.
- */
-function signingFingerprint(buf) {
-  // Walk the zip's central directory from the end-of-central-directory record.
-  const eocd = buf.lastIndexOf(Buffer.from([0x50, 0x4b, 0x05, 0x06]));
-  if (eocd < 0) return null;
-  let off = buf.readUInt32LE(eocd + 16);
-  const count = buf.readUInt16LE(eocd + 10);
-
-  for (let i = 0; i < count; i++) {
-    if (buf.readUInt32LE(off) !== 0x02014b50) return null;
-    const method = buf.readUInt16LE(off + 10);
-    const compressed = buf.readUInt32LE(off + 20);
-    const nameLen = buf.readUInt16LE(off + 28);
-    const extraLen = buf.readUInt16LE(off + 30);
-    const commentLen = buf.readUInt16LE(off + 32);
-    const local = buf.readUInt32LE(off + 42);
-    const name = buf.toString('utf8', off + 46, off + 46 + nameLen);
-    off += 46 + nameLen + extraLen + commentLen;
-
-    if (!/^META-INF\/.*\.(RSA|EC|DSA)$/i.test(name)) continue;
-
-    const lnLen = buf.readUInt16LE(local + 26);
-    const leLen = buf.readUInt16LE(local + 28);
-    const start = local + 30 + lnLen + leLen;
-    const blob = buf.subarray(start, start + compressed);
-    const der = method === 8 ? inflateRawSync(blob) : blob;
-
-    // PKCS#7 SignedData: the certificate set is context tag [0] (0xA0). The
-    // first SEQUENCE inside it is the signing certificate.
-    for (let j = 0; j < der.length - 4; j++) {
-      if (der[j] === 0xa0 && der[j + 1] === 0x82 && der[j + 4] === 0x30 && der[j + 5] === 0x82) {
-        const certLen = der.readUInt16BE(j + 6) + 4;
-        try {
-          const cert = new X509Certificate(der.subarray(j + 4, j + 4 + certLen));
-          return cert.fingerprint256;
-        } catch {
-          /* not the cert; keep scanning */
-        }
-      }
-    }
-  }
-  return null;
-}
-
-/**
- * Refuse to publish an APK that has no backend baked into it.
- *
- * `EXPO_PUBLIC_*` values are inlined into the JS bundle at build time. They
- * come from the environment of the *build*, and `.env.local` is gitignored, so
- * an EAS build that isn't given them in eas.json produces an app where
- * `lib/supabase.ts` throws at module load: it installs fine and dies before
- * drawing a frame. That shipped once. Hermes keeps string literals, so the
- * project ref is findable in the binary if it made it in.
- */
-function assertConfigured(buf) {
-  const ref = new URL(required('EXPO_PUBLIC_SUPABASE_URL')).hostname.split('.')[0];
-  if (buf.includes(Buffer.from(ref, 'latin1'))) {
-    console.log(`config check: Supabase project "${ref}" is baked into the bundle`);
-    return;
-  }
-  console.error(`This APK does not contain the Supabase project ref "${ref}".
-The build was not given EXPO_PUBLIC_* values, so the app will crash on launch.
-Check the \`env\` block on the eas.json build profile, then rebuild.`);
-  process.exit(1);
-}
-assertConfigured(file);
-
-const appConfig = JSON.parse(readFileSync('app.json', 'utf8')).expo;
-const fingerprint =
-  (await fingerprintFromEas(appConfig.extra?.eas?.projectId)) ?? signingFingerprint(file);
-console.log('signing cert sha256:', fingerprint ?? 'unavailable — App Links will not verify');
-
-// --------------------------------------------------------------- describe it
-const release = {
+// --------------------------------------------------------------- record it
+const source = JSON.parse(readFileSync(SOURCE, 'utf8'));
+const next = {
+  ...source,
   version: build.appVersion ?? appConfig.version,
-  build: build.appBuildVersion ?? null,
-  size: `${(bytes / 1048576).toFixed(1)} MB`,
-  bytes,
-  // Expo SDK 57's minSdkVersion is 24.
-  minAndroid: '7.0',
+  build: build.appBuildVersion ?? source.build,
   released: new Date().toISOString().slice(0, 10),
-  sha256,
-  signingCertSha256: fingerprint,
+  artifactUrl: build.artifacts.applicationArchiveUrl,
+  supabaseRef: new URL(required('EXPO_PUBLIC_SUPABASE_URL')).hostname.split('.')[0],
+  signingCertSha256: fingerprint ?? source.signingCertSha256,
 };
-writeFileSync('landing/release.json', JSON.stringify(release, null, 2) + '\n');
-console.log('wrote landing/release.json');
+writeFileSync(SOURCE, JSON.stringify(next, null, 2) + '\n');
 
 // App Links only verify if the site publishes the signing fingerprint.
-if (fingerprint) {
-  const path = 'landing/.well-known/assetlinks.json';
-  const links = [
-    {
-      relation: ['delegate_permission/common.handle_all_urls'],
-      target: {
-        namespace: 'android_app',
-        package_name: appConfig.android.package,
-        sha256_cert_fingerprints: [fingerprint],
-      },
-    },
-  ];
-  writeFileSync(path, JSON.stringify(links, null, 2) + '\n');
-  console.log(`wrote ${path}`);
+if (next.signingCertSha256) {
+  writeFileSync(
+    'landing/.well-known/assetlinks.json',
+    JSON.stringify(
+      [
+        {
+          relation: ['delegate_permission/common.handle_all_urls'],
+          target: {
+            namespace: 'android_app',
+            package_name: appConfig.android.package,
+            sha256_cert_fingerprints: [next.signingCertSha256],
+          },
+        },
+      ],
+      null,
+      2,
+    ) + '\n',
+  );
 }
 
-console.log('\nnext: npx vercel deploy --prod');
+console.log(`build ${build.id.slice(0, 8)} — v${next.version} (${next.build})`);
+console.log(`wrote ${SOURCE}`);
+console.log('\nnext: npm run deploy');

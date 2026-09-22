@@ -3,6 +3,7 @@ import { Stack, useRouter, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { TamaguiProvider } from 'tamagui';
 import { AppearanceProvider, useAppearance } from '@/lib/appearance';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { AuthProvider, useAuth } from '@/lib/auth';
 import { pendingInvite } from '@/lib/pendingInvite';
 import { Loader } from '@/components/ui';
@@ -62,7 +63,11 @@ function Themed() {
     <TamaguiProvider config={config} defaultTheme={scheme}>
       <AuthProvider>
         <StatusBar style={scheme === 'dark' ? 'light' : 'dark'} />
-        <AuthGate />
+        {/* Inside the providers so the fallback can use the theme, and around
+            everything else so no render error can close the app silently. */}
+        <ErrorBoundary>
+          <AuthGate />
+        </ErrorBoundary>
       </AuthProvider>
     </TamaguiProvider>
   );

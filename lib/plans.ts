@@ -38,7 +38,7 @@ export function bucketPlans(plans: Plan[], now = new Date()) {
   for (const p of plans) {
     if (p.status !== 'decided') {
       votingOpen.push(p);
-    } else if (p.confirmed_start && new Date(p.confirmed_start) < now) {
+    } else if (p.confirmed_start && toDate(p.confirmed_start) < now) {
       past.push(p);
     } else {
       scheduled.push(p);
@@ -55,8 +55,32 @@ export function bucketPlans(plans: Plan[], now = new Date()) {
  */
 export const SLOT_TZ = 'UTC';
 
+/**
+ * Parse a timestamp as it actually arrives from Postgres.
+ *
+ * PostgREST returns `2026-09-23 08:00:00+00`: a space instead of `T`, and a
+ * two-digit offset. That is not ISO 8601. V8 parses it anyway, so it worked in
+ * every browser test — but Hermes implements only the formats the spec
+ * guarantees and returns Invalid Date, which made every date in the app either
+ * read "Invalid Date" or, via `slotDay`'s `toISOString()`, throw a RangeError
+ * and take the whole app down. Found by a real install; no browser could.
+ */
+export function toDate(value: string): Date {
+  const iso = value
+    .replace(' ', 'T')
+    // Fractional seconds longer than milliseconds are also outside the spec.
+    .replace(/\.(\d{3})\d+/, '.$1')
+    // `+00` -> `+00:00`; `Z` and `+05:30` are already fine.
+    .replace(/([+-]\d{2})$/, '$1:00');
+  return new Date(iso);
+}
+
 export function formatSlot(iso: string, opts: Intl.DateTimeFormatOptions = {}) {
-  return new Date(iso).toLocaleString(undefined, {
+  const date = toDate(iso);
+  // Never throw from a formatter: a bad value should show as a dash, not
+  // crash the screen rendering it.
+  if (Number.isNaN(date.getTime())) return '—';
+  return date.toLocaleString(undefined, {
     weekday: 'short',
     day: 'numeric',
     month: 'short',
@@ -66,9 +90,17 @@ export function formatSlot(iso: string, opts: Intl.DateTimeFormatOptions = {}) {
   });
 }
 
-/** The calendar day a slot belongs to, in the same wall-clock terms. */
+/**
+ * The calendar day a slot belongs to, in the same wall-clock terms.
+ *
+ * Returns '' for an unparseable value rather than throwing: `toISOString()` on
+ * an Invalid Date raises a RangeError, and this runs while building the Home
+ * calendar, so one bad row used to take the whole screen down.
+ */
 export function slotDay(iso: string): string {
-  return new Date(iso).toISOString().slice(0, 10);
+  const date = toDate(iso);
+  if (Number.isNaN(date.getTime())) return '';
+  return date.toISOString().slice(0, 10);
 }
 
 /** A link that opens the place in whatever maps app the device has. */

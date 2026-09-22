@@ -7,6 +7,7 @@ import { Text, View } from 'tamagui';
 import { useAuth } from '@/lib/auth';
 import { supabase } from '@/lib/supabase';
 import { advancePlan } from '@/lib/advance';
+import { formatSlot } from '@/lib/plans';
 import { brand } from '@/lib/theme';
 import { Card, FadeIn, PushButton, Heading, Loader, Muted, Screen, Tappable } from '@/components/ui';
 
@@ -109,7 +110,7 @@ export function VotingPanel({ id }: { id: string }) {
         </Muted>
         <PushButton
           full={false}
-          label={myAvailability === 0 ? 'Mark availability' : 'Edit my availability'}
+          label={myAvailability === 0 ? 'Mark availability' : 'Edit availability'}
           onPress={() => router.push(`/plan/${id}/availability`)}
         />
       </Screen>
@@ -199,7 +200,7 @@ export function VotingPanel({ id }: { id: string }) {
                 })}
 
                 {poll.status === 'open' && (
-                  <Muted>Closes {new Date(poll.deadline).toLocaleString()} at the latest</Muted>
+                  <Muted>Closes {formatSlot(poll.deadline, { minute: '2-digit' })} at the latest</Muted>
                 )}
               </Card>
             </FadeIn>

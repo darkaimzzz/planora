@@ -9,6 +9,7 @@ import { VotingPanel } from '@/components/plan/VotingPanel';
 import { ChatPanel } from '@/components/plan/ChatPanel';
 import { DetailsPanel } from '@/components/plan/DetailsPanel';
 import { Loader, Screen, Tappable } from '@/components/ui';
+import { usePlanData } from '@/lib/usePlanData';
 import { brand, radius } from '@/lib/theme';
 
 const SECTIONS = [
@@ -27,9 +28,14 @@ type SectionKey = (typeof SECTIONS)[number]['key'];
  * a segmented control for anyway.
  */
 export default function PlanScreen() {
-  const { id } = useGlobalSearchParams<{ id: string }>();
+  const { id, section: startAt } = useGlobalSearchParams<{ id: string; section?: string }>();
   const router = useRouter();
-  const [section, setSection] = useState<SectionKey>('roadmap');
+  const isSection = (v?: string): v is SectionKey => SECTIONS.some((s) => s.key === v);
+  const [section, setSection] = useState<SectionKey>(isSection(startAt) ? startAt : 'roadmap');
+  // The time poll needs a vote: say so on the tab rather than making people
+  // find it. usePlanData is cheap here — the panels each run it anyway.
+  const { roadmap } = usePlanData(id);
+  const needsVote = roadmap.timePoll?.status === 'open' || roadmap.venuePoll?.status === 'open';
 
   if (!id) return <Loader />;
 
@@ -91,6 +97,14 @@ export default function PlanScreen() {
                     <Text fontSize={12} fontWeight="800" color={active ? brand.ink : brand.inkSoft}>
                       {s.label}
                     </Text>
+                    {s.key === 'voting' && needsVote && !active && (
+                      <View
+                        width={7}
+                        height={7}
+                        borderRadius={4}
+                        backgroundColor={brand.accent}
+                      />
+                    )}
                   </View>
                 </Pressable>
               );
