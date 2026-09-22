@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Linking from 'expo-linking';
 import * as WebBrowser from 'expo-web-browser';
 import { MotiView } from 'moti';
@@ -23,6 +24,7 @@ const inputStyle = {
 } as const;
 
 export default function SignIn() {
+  const insets = useSafeAreaInsets();
   const [mode, setMode] = useState<Mode>('signin');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -108,7 +110,13 @@ export default function SignIn() {
 
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <ScrollView
-          contentContainerStyle={{ flexGrow: 1, justifyContent: 'center', padding: 24 }}
+          contentContainerStyle={{
+            flexGrow: 1,
+            justifyContent: 'center',
+            padding: 24,
+            paddingTop: 24 + insets.top,
+            paddingBottom: 24 + insets.bottom,
+          }}
           keyboardShouldPersistTaps="handled"
         >
           <FadeIn>

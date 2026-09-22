@@ -41,7 +41,7 @@ export default function PlanScreen() {
 
   return (
     <Screen>
-      <SafeAreaView style={{ flex: 1 }} edges={['top']}>
+      <SafeAreaView style={{ flex: 1 }} edges={['top', 'bottom']}>
         <View
           flexDirection="row"
           alignItems="center"

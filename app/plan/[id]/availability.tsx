@@ -23,6 +23,7 @@ export default function Availability() {
   const [selected, setSelected] = useState<Set<Cell>>(new Set());
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   // Drag state lives in refs: the pan responder is created once, and rebuilding
   // it on every state change would drop the gesture mid-drag.
@@ -33,6 +34,7 @@ export default function Availability() {
   // together they let every move recompute the result from scratch.
   const anchorRef = useRef<{ col: number; row: number } | null>(null);
   const baseRef = useRef<Set<Cell>>(new Set());
+  const lastPaintRef = useRef<{ col: number; row: number } | null>(null);
   const gridRef = useRef<View>(null);
   const gridOrigin = useRef({ x: 0, y: 0 });
 
@@ -80,6 +82,11 @@ export default function Availability() {
   function paintTo(pos: { col: number; row: number }) {
     const anchor = anchorRef.current;
     if (!anchor) return;
+    // Pointer moves fire far faster than cells change. Without this, a drag
+    // re-rendered the whole grid on every event and pinned the JS thread.
+    const last = lastPaintRef.current;
+    if (last && last.col === pos.col && last.row === pos.row) return;
+    lastPaintRef.current = pos;
 
     const next = new Set(baseRef.current);
     const [c0, c1] = [Math.min(anchor.col, pos.col), Math.max(anchor.col, pos.col)];
@@ -95,8 +102,12 @@ export default function Availability() {
     setSelected(next);
   }
 
-  const pan = useRef(
-    PanResponder.create({
+  // useMemo, not useRef: `useRef(PanResponder.create(…))` keeps the first
+  // responder but still *evaluates* the argument on every render, so a fresh
+  // responder was being built and thrown away 60 times a second mid-drag.
+  const pan = useMemo(
+    () =>
+      PanResponder.create({
       onStartShouldSetPanResponder: () => true,
       onMoveShouldSetPanResponder: () => true,
       onPanResponderGrant: (e) => {
@@ -108,6 +119,7 @@ export default function Availability() {
         const cell = cellKey(days[pos.col], HOURS[pos.row]);
         paintingRef.current = !selectedRef.current.has(cell);
         anchorRef.current = pos;
+        lastPaintRef.current = null;
         baseRef.current = new Set(selectedRef.current);
         paintTo(pos);
       },
@@ -115,35 +127,58 @@ export default function Availability() {
         const pos = cellPos(e.nativeEvent.pageX, e.nativeEvent.pageY);
         if (pos) paintTo(pos);
       },
-      onPanResponderRelease: () => {
-        anchorRef.current = null;
-      },
-    }),
-  ).current;
+        onPanResponderRelease: () => {
+          anchorRef.current = null;
+          lastPaintRef.current = null;
+        },
+      }),
+    // Everything the handlers touch is a ref or a stable value, so this is
+    // built once for the life of the screen.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [],
+  );
 
   async function save() {
     if (!session || !id) return;
     setSaving(true);
-    // Replace wholesale: simpler than diffing, and one person's availability
-    // for one plan is a handful of rows.
-    await supabase.from('availability').delete().eq('plan_id', id).eq('user_id', session.user.id);
-    const rows = cellsToRows(selected).map((r) => ({ ...r, plan_id: id, user_id: session.user.id }));
-    if (rows.length) await supabase.from('availability').insert(rows);
-    // Everyone in? Then this save is what opens the time poll.
-    await advancePlan(id);
-    setSaving(false);
-    // Land on Vote rather than wherever they came from: saving availability is
-    // what opens the time poll, and hunting for the right tab afterwards was
-    // the confusing part.
-    router.replace({ pathname: '/plan/[id]', params: { id, section: 'voting' } });
+    setSaveError(null);
+    // An async handler is outside React's error boundary: anything that throws
+    // here becomes an unhandled rejection, which on a release build ends the
+    // process with no message at all. Catch it and say what happened.
+    try {
+      // Replace wholesale: simpler than diffing, and one person's availability
+      // for one plan is a handful of rows.
+      const del = await supabase
+        .from('availability')
+        .delete()
+        .eq('plan_id', id)
+        .eq('user_id', session.user.id);
+      if (del.error) throw del.error;
+
+      const rows = cellsToRows(selected).map((r) => ({ ...r, plan_id: id, user_id: session.user.id }));
+      if (rows.length) {
+        const ins = await supabase.from('availability').insert(rows);
+        if (ins.error) throw ins.error;
+      }
+      // Everyone in? Then this save is what opens the time poll.
+      await advancePlan(id);
+      // Land on Vote rather than wherever they came from: saving availability
+      // is what opens the time poll, and hunting for the right tab afterwards
+      // was the confusing part.
+      router.replace({ pathname: '/plan/[id]', params: { id, section: 'voting' } });
+    } catch (err) {
+      setSaveError((err as Error)?.message ?? String(err));
+    } finally {
+      setSaving(false);
+    }
   }
 
-  const styles = makeStyles();
+  const styles = useMemo(makeStyles, [brand.isDark]);
 
   if (loading) return <Loader />;
 
   return (
-    <SafeAreaView style={styles.flex} edges={['top']}>
+    <SafeAreaView style={styles.flex} edges={['top', 'bottom']}>
       <View style={styles.header}>
         <View style={styles.headerTop}>
           <Tappable onPress={() => router.back()}>
@@ -194,6 +229,7 @@ export default function Availability() {
       </ScrollView>
 
       <View style={styles.footer}>
+        {saveError && <Text style={styles.error}>Could not save: {saveError}</Text>}
         <PushButton
           label={selected.size ? 'Save availability' : 'Pick at least one hour'}
           onPress={save}
@@ -225,6 +261,7 @@ function makeStyles() {
   headerText: { flex: 1, gap: 2 },
   hint: { color: brand.ink as unknown as string, fontSize: 17, fontWeight: '700' },
   count: { color: brand.inkSoft as unknown as string, fontSize: 13, fontWeight: '600' },
+  error: { color: brand.danger as unknown as string, fontSize: 13, fontWeight: '700', marginBottom: 8 },
   headerRow: { flexDirection: 'row', paddingLeft: 0 },
   headerCell: { alignItems: 'center', paddingBottom: 8 },
   headerDay: { fontSize: 11, color: brand.inkSoft as unknown as string, fontWeight: '700' },

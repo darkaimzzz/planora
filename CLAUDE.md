@@ -806,3 +806,43 @@ PRD §10. Two real users complete the whole flow end to end. Polish is explicitl
   - This also closes the earlier trap for good: a deployment built from the
     repository is now complete on its own, so a git push can no longer produce
     a site with no download.
+
+- **2026-09-22 — Round two on device: the drag was killing the JS thread.**
+  Saving availability still crashed after the date fix, reproducibly, on two
+  phones. Re-reading the screen found three things that make a drag
+  pathologically expensive on a phone and invisible in a browser:
+  1. **`StyleSheet.create` ran on every render.** `makeStyles()` is called per
+     render on purpose — a module-level `StyleSheet.create` would freeze the
+     light palette into dark mode — but it was never memoised.
+  2. **`useRef(PanResponder.create({…}))` rebuilt the responder every render.**
+     `useRef` keeps the first value, but JavaScript still *evaluates* the
+     argument each time, so a whole PanResponder was built and discarded on
+     every frame of a drag.
+  3. **Every pointer move called `setSelected`**, re-rendering all ~112 cells
+     even when the finger had not crossed into a new cell.
+  Together they pin the JS thread, and Android kills an app whose main thread
+  stops responding — which presents exactly as a crash. Styles are memoised on
+  `brand.isDark`, the responder is built once, and a move that does not change
+  the painted cell now returns immediately.
+  - **No crash log was available**, so that is a strong diagnosis, not a proven
+    one. The same build therefore makes the next iteration definitive:
+    - `save()` is wrapped in try/catch and renders "Could not save: …". An
+      async handler is outside React's error boundary, so anything it threw
+      became an unhandled rejection — which in a release build ends the process
+      with no message at all. That is why there was nothing to go on.
+    - `ErrorBoundary` now also installs `ErrorUtils.setGlobalHandler`, so an
+      uncaught error *anywhere* — handler, timer, await — shows the error
+      screen with a copy button instead of closing the app.
+
+- **2026-09-22 — Android's navigation bar overlapped the UI.**
+  Expo draws edge-to-edge on Android, and only the bottom tab bar was reserving
+  space for the system bar. Anything outside the tab navigator rendered
+  underneath it: **the "Save availability" button** (the availability grid is
+  its own route with no tab bar) and **the chat input** on the plan screen were
+  both unreachable, and sign-in's footer link could land under it on a tall
+  phone.
+  - `plan/[id]` and `plan/[id]/availability` now take `edges={['top',
+    'bottom']}`. Sign-in pads its scroll content by the real inset instead —
+    wrapping it in a SafeAreaView would also clip the top, where the
+    decorative blobs bleed off-screen deliberately.
+  - The tab screens were already correct: the bar itself adds `insets.bottom`.
