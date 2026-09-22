@@ -714,3 +714,28 @@ PRD §10. Two real users complete the whole flow end to end. Polish is explicitl
   directly. Now built with `pathToFileURL(process.argv[1]).href`.
   Confirmed by running it: removed both `@planora.test` accounts and left the
   real account and its three plans alone.
+
+- **2026-09-22 — "There was a problem parsing the package": the site had no APK.**
+  The file was fine; the deployment wasn't. **The Vercel project is linked to
+  GitHub, so every `git push` triggered a second deployment built from the
+  repository — and the APK is gitignored on purpose, so that build had no
+  `planora.apk` and took over production.** The CLI deploy at 21:53 served it
+  and was verified byte-exact; the git deploy at 21:54, triggered by the push
+  of that very commit, replaced it. `/planora.apk` then returned Vercel's
+  79-byte `NOT_FOUND` text, which a phone happily saves as `planora.apk` and
+  Android refuses to parse. The APK itself was never at fault — both builds
+  carry a valid v2/v3 signing block, a `STORED` 4-byte-aligned `resources.arsc`
+  and an intact manifest.
+  - Two defences, because a single one had already failed silently:
+    1. `git.deploymentEnabled: { main: false }` in `vercel.json` — there is now
+       exactly one way to deploy this site.
+    2. **`npm run deploy`** (`scripts/deploy-site.mjs`) refuses to deploy if
+       `landing/planora.apk` is missing or disagrees with `release.json`, then
+       re-downloads the APK from the live URL afterwards and checks size,
+       SHA-256, zip magic and content-type. A deploy that doesn't serve the
+       release now fails loudly instead of reporting success.
+  - Checked while diagnosing: no `.env` file has ever been uploaded — the
+    Vercel CLI always excludes them — so nothing sensitive was exposed.
+  - Lesson: *verifying immediately after deploying is not enough when a second,
+    slower pipeline can overwrite production a minute later.* Verify, and make
+    the verification part of the only deploy path.

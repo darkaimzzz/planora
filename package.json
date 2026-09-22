@@ -16,7 +16,8 @@
     "deploy:function": "node scripts/deploy-function.mjs",
     "audit": "node scripts/audit.mjs",
     "build:apk": "eas build --platform android --profile apk",
-    "release": "node scripts/release.mjs"
+    "release": "node scripts/release.mjs",
+    "deploy": "node scripts/deploy-site.mjs"
   },
   "dependencies": {
     "@expo/vector-icons": "^15.0.2",
