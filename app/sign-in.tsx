@@ -102,7 +102,7 @@ export default function SignIn() {
 
   return (
     <Screen>
-      {/* Three soft blobs in the brand colours — the only decoration, kept
+      {/* Three soft blobs in the brand colours, the only decoration, kept
           behind everything so the form stays the focus. */}
       <Blob color={brand.primaryWash} size={320} top={-110} left={-90} />
       <Blob color={brand.accentWash} size={220} top={40} right={-80} />

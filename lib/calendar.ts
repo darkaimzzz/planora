@@ -1,4 +1,4 @@
-// Pure calendar layout. No Supabase import — tests load this directly.
+// Pure calendar layout. No Supabase import, tests load this directly.
 import { slotDay, type Plan } from './plans';
 
 export type Day = {
@@ -14,7 +14,7 @@ export function isoDate(d: Date): string {
 }
 
 /**
- * Only the signed-in user's own plans reach this function — the Home calendar
+ * Only the signed-in user's own plans reach this function, the Home calendar
  * never shows other attendees' busy times (locked decision; v2 needs consent).
  * A plan lands on the day of its confirmed start, so unconfirmed plans don't
  * appear at all.

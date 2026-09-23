@@ -33,7 +33,7 @@ export default function PlanScreen() {
   const isSection = (v?: string): v is SectionKey => SECTIONS.some((s) => s.key === v);
   const [section, setSection] = useState<SectionKey>(isSection(startAt) ? startAt : 'roadmap');
   // The time poll needs a vote: say so on the tab rather than making people
-  // find it. usePlanData is cheap here — the panels each run it anyway.
+  // find it. usePlanData is cheap here, the panels each run it anyway.
   const { roadmap } = usePlanData(id);
   const needsVote = roadmap.timePoll?.status === 'open' || roadmap.venuePoll?.status === 'open';
 
@@ -73,7 +73,7 @@ export default function PlanScreen() {
                 // inner animated view, so the flex never reached the pressable
                 // itself. On web the segments still got width from the row; on a
                 // device they collapsed to nothing and the bar looked empty.
-                // The inner View needs no flex — a View's children stretch to its
+                // The inner View needs no flex, a View's children stretch to its
                 // width by default.
                 <Pressable key={s.key} onPress={() => setSection(s.key)} style={{ flex: 1 }}>
                   <View

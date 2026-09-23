@@ -19,7 +19,7 @@ export type PlanData = {
 
 /**
  * Everything the per-plan tabs need, in one round of queries. Realtime pokes it
- * to reload rather than patching state in place — plans are small, and a reload
+ * to reload rather than patching state in place, plans are small, and a reload
  * can't drift out of sync with the database the way incremental patching can.
  */
 export function usePlanData(planId: string | undefined): PlanData {

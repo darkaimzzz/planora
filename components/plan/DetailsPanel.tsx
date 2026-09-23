@@ -108,7 +108,7 @@ export function DetailsPanel({ id }: { id: string }) {
               <Ionicons name="link-outline" size={18} color={String(brand.primary)} />
               <Heading>Invite link</Heading>
             </View>
-            <Muted>Anyone with this link joins the plan — no account needed up front.</Muted>
+            <Muted>Anyone with this link joins the plan, no account needed up front.</Muted>
 
             <View
               backgroundColor={brand.sunken}

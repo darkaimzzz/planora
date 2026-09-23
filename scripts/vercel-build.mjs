@@ -11,7 +11,7 @@
 // repository is complete on its own.
 //
 // Everything about the release that a human chooses lives in
-// landing/release.source.json (committed). Everything derived — size, hash —
+// landing/release.source.json (committed). Everything derived, size, hash,
 // is computed here, so the two can never disagree.
 import { createHash } from 'node:crypto';
 import { readFileSync, writeFileSync, statSync } from 'node:fs';
@@ -36,7 +36,7 @@ const fail = (why) => {
   process.exit(1);
 };
 if (apk.subarray(0, 2).toString() !== 'PK') fail('not a zip');
-if (eocd < 0) fail('truncated — no end-of-central-directory record');
+if (eocd < 0) fail('truncated, no end-of-central-directory record');
 
 const centralDir = apk.readUInt32LE(eocd + 16);
 if (!apk.subarray(centralDir - 40, centralDir).includes(Buffer.from('APK Sig Block 42', 'latin1'))) {
@@ -45,7 +45,7 @@ if (!apk.subarray(centralDir - 40, centralDir).includes(Buffer.from('APK Sig Blo
 // The launch-crash guard: an APK built without EXPO_PUBLIC_* values installs
 // fine and dies before its first frame.
 if (!apk.includes(Buffer.from(source.supabaseRef, 'latin1'))) {
-  fail(`Supabase project "${source.supabaseRef}" is not in the bundle — the app would crash on launch`);
+  fail(`Supabase project "${source.supabaseRef}" is not in the bundle, the app would crash on launch`);
 }
 
 const bytes = statSync(OUT).size;
@@ -61,4 +61,4 @@ const release = {
 };
 writeFileSync('landing/release.json', JSON.stringify(release, null, 2) + '\n');
 
-console.log(`ok — ${release.size}, sha ${release.sha256.slice(0, 16)}…, signed, config baked in`);
+console.log(`ok, ${release.size}, sha ${release.sha256.slice(0, 16)}…, signed, config baked in`);

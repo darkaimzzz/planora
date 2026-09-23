@@ -40,7 +40,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return;
     }
 
-    // Signed in with no profile row — possible for anyone who signed up before
+    // Signed in with no profile row, possible for anyone who signed up before
     // the signup trigger existed. Without one, creating a plan fails on a
     // foreign key with a baffling error, so repair it rather than carry on.
     const { data: created, error } = await supabase.rpc('ensure_profile');

@@ -3,9 +3,9 @@ import type { ColorTokens } from 'tamagui';
 // Planora's look: Apple's restraint in layout and type, Duolingo's energy in
 // colour and touch. Three base colours carry everything, each with a job:
 //
-//   indigo  — the brand, and every primary action
-//   grass   — progress, and anything settled or confirmed
-//   sunbeam — attention: what's waiting on you, counts, highlights
+//   indigo , the brand, and every primary action
+//   grass  , progress, and anything settled or confirmed
+//   sunbeam, attention: what's waiting on you, counts, highlights
 //
 // Each has a `deep` shade, used as the pressed-down edge of a button, and a
 // `wash` for tinted backgrounds. Nothing else gets to introduce a hue.
@@ -100,7 +100,7 @@ export const darkPalette: Palette = {
  * the contents in place means the theme can change without rewriting all of
  * them. AppearanceProvider sits at the root, so swapping it re-renders the
  * whole tree with the new values. The rule this relies on: never destructure
- * or capture `brand.x` at module scope — read it during render. That is why
+ * or capture `brand.x` at module scope, read it during render. That is why
  * there are no `StyleSheet.create` colour values and no `styled()` defaults
  * left in the app.
  */

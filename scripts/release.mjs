@@ -4,7 +4,7 @@
 // Expo's CDN throttles this machine to ~20 KB/s (Vercel gets 690 KB/s from the
 // same connection), so that took the best part of an hour. Now the only thing
 // recorded here is *which* build to publish; Vercel's build fetches it, checks
-// it, and derives the size and checksum — see scripts/vercel-build.mjs.
+// it, and derives the size and checksum, see scripts/vercel-build.mjs.
 //
 // After this, run `npm run deploy`.
 import { readFileSync, writeFileSync } from 'node:fs';
@@ -93,6 +93,6 @@ if (next.signingCertSha256) {
   );
 }
 
-console.log(`build ${build.id.slice(0, 8)} — v${next.version} (${next.build})`);
+console.log(`build ${build.id.slice(0, 8)}, v${next.version} (${next.build})`);
 console.log(`wrote ${SOURCE}`);
 console.log('\nnext: npm run deploy');

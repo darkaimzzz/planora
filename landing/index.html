@@ -3,12 +3,12 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-    <title>Planora — get everyone in one place</title>
+    <title>Planora: get everyone in one place</title>
     <meta
       name="description"
       content="Planora turns “we should hang out” into a confirmed time and place. Everyone marks when they're free, the group votes, the plan settles itself. Download the Android app."
     />
-    <meta property="og:title" content="Planora — get everyone in one place" />
+    <meta property="og:title" content="Planora: get everyone in one place" />
     <meta
       property="og:description"
       content="Mark when you're free, vote, done. No group chat archaeology. Free Android download."
@@ -75,7 +75,7 @@
       /*
        * Only ever sets the horizontal gutter. It used to be `padding: 0 24px`,
        * which as a class beat `section { padding: 66px 0 }` on specificity and
-       * silently zeroed every section's vertical rhythm — the whole page
+       * silently zeroed every section's vertical rhythm; the whole page
        * collapsed into one block. Separate axes, so the two rules can't fight.
        */
       .wrap { max-width: 1040px; margin: 0 auto; padding-inline: 24px; }
@@ -272,7 +272,7 @@
           <h1>Stop planning.<br /><span class="accent">Start showing up.</span></h1>
           <p class="lede">
             Everyone marks when they're free. Planora finds the hours that actually overlap,
-            the group votes, and the plan confirms itself — time, place, done. No forty-message
+            the group votes, and the plan confirms itself: time, place, done. No forty-message
             thread that ends in nobody going.
           </p>
           <div class="cta-row">
@@ -323,7 +323,7 @@
         The only thing anyone has to actually do is say when they're free and tap a vote.
       </p>
       <ol class="steps">
-        <li><div><b>Start a plan</b><span>Give it a name. Share the link. People join by tapping it — no accounts to look up, no adding anyone by hand.</span></div></li>
+        <li><div><b>Start a plan</b><span>Give it a name. Share the link. People join by tapping it. No accounts to look up, no adding anyone by hand.</span></div></li>
         <li><div><b>Drag when you're free</b><span>A week grid. Drag across the hours that work. That's the whole input.</span></div></li>
         <li><div><b>The app finds the overlap</b><span>It works out the three hours that suit the most people and opens a vote on them. Nobody compares calendars.</span></div></li>
         <li><div><b>Vote on the place</b><span>Whoever started it shortlists two or three real venues. The group picks. One place and everyone agrees? It skips the vote.</span></div></li>
@@ -340,7 +340,7 @@
           <h3>Nobody overrules the group</h3>
           <p>
             The person who started the plan can rename it. That's it. They can't move the time
-            or change the place after a vote — the database itself refuses.
+            or change the place after a vote. The database itself refuses.
           </p>
         </div>
         <div class="card">
@@ -366,12 +366,12 @@
       <div class="install">
         <h2>Installing it</h2>
         <p class="sub">
-          Planora isn't on the Play Store — you're downloading it straight from us. Android
+          Planora isn't on the Play Store. You're downloading it straight from us. Android
           will ask you to confirm that once. That's normal for a direct download, and here's
           exactly what you'll see.
         </p>
         <ol class="steps">
-          <li><div><b>Tap download</b><span>The file is <code>planora.apk</code>. Your browser may warn that this type of file can harm your device — that warning appears for every APK, including safe ones. Choose <b>Download anyway</b>.</span></div></li>
+          <li><div><b>Tap download</b><span>The file is <code>planora.apk</code>. Your browser may warn that this type of file can harm your device. That warning appears for every APK, including safe ones. Choose <b>Download anyway</b>.</span></div></li>
           <li><div><b>Open it</b><span>Tap the file in your notifications or in Downloads.</span></div></li>
           <li><div><b>Allow this one install</b><span>Android asks whether to allow installs from your browser. Turn it on for that app, go back, and tap Install. You only do this once.</span></div></li>
           <li><div><b>Open Planora</b><span>Make an account with an email or with Google, pick a name, and you're in.</span></div></li>
@@ -400,7 +400,7 @@
           The risk with an APK is not knowing who built it or whether it was tampered with on
           the way to you. This one is served over HTTPS from the address in your URL bar, and
           the SHA-256 checksum above lets you confirm the file you got is byte-for-byte the one
-          we published. The source is public, too — the link is in the footer.
+          we published. The source is public too; the link is in the footer.
         </p>
       </details>
       <details>
@@ -415,7 +415,7 @@
         <summary>Is there an iPhone version?</summary>
         <p>
           Not yet. Apple doesn't allow installing outside the App Store, so an iOS release has
-          to go through review — that's a later job. Your plans live in the cloud, so an iPhone
+          to go through review. That's a later job. Your plans live in the cloud, so an iPhone
           friend can be added the moment it exists.
         </p>
       </details>
@@ -455,7 +455,7 @@
     <script>
       // Release details live in one small file so publishing a new build is a
       // file swap, not an edit to this page. The button works without any of
-      // this — it's a plain link.
+      // this, it's a plain link.
       fetch('/release.json')
         .then((r) => (r.ok ? r.json() : null))
         .then((rel) => {

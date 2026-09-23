@@ -12,7 +12,7 @@
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import Anthropic from 'npm:@anthropic-ai/sdk@0.69.0';
 
-// Pure logic shared with the app — no imports of its own, so both Metro and
+// Pure logic shared with the app, no imports of its own, so both Metro and
 // Deno can load it.
 import { pickWinner, topSlots, type AvailabilityRow, type Tally } from '../../../lib/availability.ts';
 
@@ -20,7 +20,7 @@ const db = createClient(
   Deno.env.get('SUPABASE_URL')!,
   // Auto-injected by Supabase. Bypasses RLS, which is why poll and
   // system-message writes have no client-side insert policy.
-  // (A custom SUPABASE_* secret can't be set — the prefix is reserved.)
+  // (A custom SUPABASE_* secret can't be set, the prefix is reserved.)
   Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
 );
 
@@ -31,7 +31,7 @@ const anthropic = anthropicKey ? new Anthropic({ apiKey: anthropicKey }) : null;
 
 /**
  * Typed Boolean decision: "has this poll effectively resolved?" Jev gets
- * structured state and returns a typed answer with a probability — never prose.
+ * structured state and returns a typed answer with a probability, never prose.
  *
  * ponytail: with no JEV_API_KEY we fall back to a deterministic rule (a
  * majority has voted and the leader is unbeatable by the remaining voters).
@@ -73,7 +73,7 @@ async function pollHasResolved(state: {
 // ------------------------------------------------------------- Claude
 
 async function draftConfirmation(title: string, when: string, venue: string): Promise<string> {
-  if (!anthropic) return `It's official — ${title}: ${when} at ${venue}. See you there!`;
+  if (!anthropic) return `It's official, ${title}: ${when} at ${venue}. See you there!`;
 
   const response = await anthropic.messages.create({
     model: 'claude-opus-5',
@@ -88,7 +88,7 @@ async function draftConfirmation(title: string, when: string, venue: string): Pr
   const text = response.content.find((b) => b.type === 'text');
   return text && text.type === 'text'
     ? text.text.trim()
-    : `It's official — ${title}: ${when} at ${venue}!`;
+    : `It's official, ${title}: ${when} at ${venue}!`;
 }
 
 // ------------------------------------------------------------ helpers
@@ -182,7 +182,7 @@ async function step(planId: string): Promise<boolean> {
   const { data: plan } = await db.from('plans').select('*').eq('id', planId).single();
   if (!plan) return false;
 
-  // A decided plan is finished — unless the run that decided it died between
+  // A decided plan is finished, unless the run that decided it died between
   // flipping the status and posting the message, in which case nothing else
   // would ever post it and the group is never told.
   if (plan.status === 'decided') {
@@ -217,7 +217,7 @@ async function step(planId: string): Promise<boolean> {
     const slots = topSlots((rows ?? []) as AvailabilityRow[], 3);
     if (slots.length === 0) return false;
 
-    // Several clients call this at once — everyone who saves their
+    // Several clients call this at once, everyone who saves their
     // availability nudges it. A unique index on (plan_id, poll_type) makes the
     // database pick one winner; the losers bail out here instead of each
     // creating their own poll with its own options.
@@ -319,7 +319,7 @@ async function step(planId: string): Promise<boolean> {
 
     // The time is normally written the moment the time poll closes. If a run
     // died between those two writes, the plan would otherwise confirm with no
-    // time at all — decided, absent from every calendar, and announced in chat
+    // time at all, decided, absent from every calendar, and announced in chat
     // as happening at "the agreed time". Recover it from the poll instead.
     if (!startsAt && timePoll.winning_option_id) {
       const { data: option } = await db
@@ -336,7 +336,7 @@ async function step(planId: string): Promise<boolean> {
       }
     }
 
-    // Still no time means the poll closed with no winner — nobody voted. Wait
+    // Still no time means the poll closed with no winner, nobody voted. Wait
     // rather than confirm a plan that has no when.
     if (!startsAt) return false;
 
@@ -355,7 +355,7 @@ async function step(planId: string): Promise<boolean> {
 }
 
 // The app calls this from the browser during development (Expo web), so the
-// function has to answer the preflight itself — Edge Functions add no CORS
+// function has to answer the preflight itself, Edge Functions add no CORS
 // headers of their own, and without these every web call fails before it runs.
 const CORS = {
   'Access-Control-Allow-Origin': '*',
@@ -369,7 +369,7 @@ Deno.serve(async (req) => {
   try {
     const body = await req.json().catch(() => ({}));
 
-    // No plan_id: the cron sweep. Two kinds of plan need picking up —
+    // No plan_id: the cron sweep. Two kinds of plan need picking up,
     // one whose poll has run past its 24h cap, and one left mid-flow by an
     // interrupted run (poll closed, plan not yet decided).
     let planIds: string[];

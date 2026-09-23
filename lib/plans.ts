@@ -1,4 +1,4 @@
-// Pure plan shapes and grouping logic — no Supabase import here, so the
+// Pure plan shapes and grouping logic, no Supabase import here, so the
 // assert checks in tests/ can load it under plain node.
 
 export type PlanStatus = 'collecting' | 'voting' | 'decided';
@@ -50,7 +50,7 @@ export function bucketPlans(plans: Plan[], now = new Date()) {
 /**
  * Slots are wall-clock times: the hour someone dragged on the grid is the hour
  * everyone should see, whatever timezone their phone is in. The server builds
- * them in UTC, so they are read back in UTC rather than converted to local —
+ * them in UTC, so they are read back in UTC rather than converted to local,
  * otherwise "7 pm" becomes "12:30 am the next day" east of Greenwich.
  */
 export const SLOT_TZ = 'UTC';
@@ -60,7 +60,7 @@ export const SLOT_TZ = 'UTC';
  *
  * PostgREST returns `2026-09-23 08:00:00+00`: a space instead of `T`, and a
  * two-digit offset. That is not ISO 8601. V8 parses it anyway, so it worked in
- * every browser test — but Hermes implements only the formats the spec
+ * every browser test, but Hermes implements only the formats the spec
  * guarantees and returns Invalid Date, which made every date in the app either
  * read "Invalid Date" or, via `slotDay`'s `toISOString()`, throw a RangeError
  * and take the whole app down. Found by a real install; no browser could.
@@ -79,7 +79,7 @@ export function formatSlot(iso: string, opts: Intl.DateTimeFormatOptions = {}) {
   const date = toDate(iso);
   // Never throw from a formatter: a bad value should show as a dash, not
   // crash the screen rendering it.
-  if (Number.isNaN(date.getTime())) return '—';
+  if (Number.isNaN(date.getTime())) return '-';
   return date.toLocaleString(undefined, {
     weekday: 'short',
     day: 'numeric',
@@ -112,7 +112,7 @@ export function mapsUrl(plan: {
 }): string | null {
   if (!plan.location_name) return null;
   // `osm:` ids come from the free OpenStreetMap provider and mean nothing to
-  // Google — feeding one to query_place_id lands on the wrong place, so fall
+  // Google, feeding one to query_place_id lands on the wrong place, so fall
   // through to coordinates instead.
   if (plan.location_place_id && !plan.location_place_id.startsWith('osm:')) {
     return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(

@@ -1,4 +1,4 @@
-// Pure availability + overlap logic. No Supabase import — tests load this directly.
+// Pure availability + overlap logic. No Supabase import, tests load this directly.
 
 /** The grid covers the next week, 08:00–23:00, in one-hour cells. */
 export const GRID_DAYS = 7;
@@ -81,7 +81,7 @@ function hh(hour: number) {
 export type SlotCandidate = {
   day: string;
   hour: number;
-  /** Distinct attendees free for this hour — also the tie-break value (PRD §9). */
+  /** Distinct attendees free for this hour, also the tie-break value (PRD §9). */
   availabilityCount: number;
 };
 
@@ -106,7 +106,7 @@ function isPast(day: string, hour: number, floor: { day: string; hour: number })
  * Slots that have already started are dropped: a stale client could post
  * availability for a day in the past, and the poll would then offer a time
  * nobody can attend. The grid only ever shows the next seven days, so this
- * only bites on bad input — which is exactly when it matters.
+ * only bites on bad input, which is exactly when it matters.
  *
  * ponytail: one-hour granularity, so a group free all evening gets three
  * adjacent hours offered rather than one merged block. Merge runs before

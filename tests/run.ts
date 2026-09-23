@@ -271,7 +271,7 @@ const now = new Date('2026-06-15T12:00:00Z');
 // ------------------------------------------------------- slot wall-clock
 {
   // A 7pm slot is stored as 19:00Z. It must stay on the 25th and read as 7 pm
-  // no matter what timezone the device is in — east of Greenwich a naive local
+  // no matter what timezone the device is in, east of Greenwich a naive local
   // conversion pushes it to 00:30 on the 26th.
   const evening = plan({ status: 'decided', confirmed_start: '2026-09-25T19:00:00+00:00' });
   assert.equal(slotDay(evening.confirmed_start!), '2026-09-25');
@@ -337,7 +337,7 @@ const now = new Date('2026-06-15T12:00:00Z');
   assert.equal(gridDays(new Date(2026, 11, 31))[1], '2027-01-01');
 }
 
-// An OpenStreetMap id must not be handed to Google as a place id — it would
+// An OpenStreetMap id must not be handed to Google as a place id, it would
 // resolve to the wrong place, so the link falls back to coordinates.
 {
   const osm = mapsUrl({
@@ -375,7 +375,7 @@ console.log('ok');
 
 // ------------------------------------------- Postgres timestamp parsing
 {
-  // PostgREST returns "2026-09-23 08:00:00+00" — a space, and a two-digit
+  // PostgREST returns "2026-09-23 08:00:00+00", a space, and a two-digit
   // offset. V8 parses it; Hermes does not, which crashed the app on device
   // while every browser test passed.
   const pg = '2026-09-23 08:00:00+00';
@@ -389,7 +389,7 @@ console.log('ok');
   assert.equal(toDate('2026-09-23 13:30:00+05:30').toISOString(), '2026-09-23T08:00:00.000Z');
   assert.equal(toDate('2026-09-22 13:35:09.557361+00').toISOString(), '2026-09-22T13:35:09.557Z');
 
-  // Garbage must not throw — it used to take the whole screen down.
+  // Garbage must not throw, it used to take the whole screen down.
   assert.equal(slotDay('not a date'), '', 'no RangeError from toISOString');
-  assert.equal(formatSlot('not a date'), '—');
+  assert.equal(formatSlot('not a date'), '-');
 }

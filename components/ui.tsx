@@ -154,7 +154,7 @@ export function PushButton({
   );
 }
 
-/** The same slab, in the quiet tone — secondary actions. */
+/** The same slab, in the quiet tone, secondary actions. */
 export function NeutralButton(props: Omit<Parameters<typeof PushButton>[0], 'tone'>) {
   return <PushButton {...props} tone="neutral" />;
 }
@@ -211,7 +211,7 @@ export function Chip({
   );
 }
 
-/** Small status pill — "2 voted", "Confirmed", a count. */
+/** Small status pill, "2 voted", "Confirmed", a count. */
 export function Badge({ label, tone = 'primary' }: { label: string; tone?: Tone }) {
   const wash =
     tone === 'success' ? brand.successWash : tone === 'accent' ? brand.accentWash : brand.primaryWash;
@@ -273,7 +273,7 @@ export function Avatar({
   );
 }
 
-/** Staggered entrance — items rise into place one after another. */
+/** Staggered entrance, items rise into place one after another. */
 export function FadeIn({ children, delay = 0 }: { children: ReactNode; delay?: number }) {
   return (
     <MotiView

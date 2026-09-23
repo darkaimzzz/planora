@@ -6,8 +6,8 @@
 -- explicit grant to `anon` in place. `has_function_privilege('anon', …)` was
 -- still true for every function afterwards.
 --
--- Nothing was exploitable — 0007 also made each function reject a NULL
--- auth.uid() itself, which is what the audit proves — but a function that
+-- Nothing was exploitable, 0007 also made each function reject a NULL
+-- auth.uid() itself, which is what the audit proves, but a function that
 -- authorises correctly *and* is unreachable is the shape we want.
 
 -- --------------------------------------------------- 1. actually revoke anon
@@ -71,7 +71,7 @@ select cron.schedule(
 -- ------------------------------------------------------ 4. policy initplan
 -- `auth.uid()` in a policy is re-evaluated per row. Wrapping it in a scalar
 -- subquery makes Postgres treat it as a one-off InitPlan. Same rules, same
--- results — this is purely how often the function runs.
+-- results, this is purely how often the function runs.
 
 drop policy profiles_write on profiles;
 create policy profiles_write on profiles for update to authenticated

@@ -182,7 +182,7 @@
       }
 
       // Show which plan it is, so the page isn't an anonymous wall.
-      // A failure here is cosmetic — the button still works.
+      // A failure here is cosmetic; the button still works.
       if (token) {
         fetch(SUPABASE_URL + '/rest/v1/rpc/plan_preview', {
           method: 'POST',

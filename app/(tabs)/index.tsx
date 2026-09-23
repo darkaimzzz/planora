@@ -139,7 +139,7 @@ export default function Home() {
             </FadeIn>
           )}
 
-          {/* Three stat tiles, one per base colour — the app's pulse at a glance. */}
+          {/* Three stat tiles, one per base colour, the app's pulse at a glance. */}
           <FadeIn delay={50}>
             <View flexDirection="row" gap={10}>
               <Stat value={votingOpen.length} label="Deciding" tone="accent" emoji="🗳️" />

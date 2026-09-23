@@ -27,7 +27,7 @@ export async function fetchDeletionImpact(): Promise<DeletionImpact> {
  * Permanently delete the signed-in account.
  *
  * Required by both stores (Apple 5.1.1(v), Google Play's data deletion
- * policy). Irreversible — the caller is responsible for confirming first.
+ * policy). Irreversible, the caller is responsible for confirming first.
  */
 export async function deleteOwnAccount(): Promise<void> {
   const { error } = await supabase.rpc('delete_own_account');

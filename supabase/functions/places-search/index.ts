@@ -1,7 +1,7 @@
 // Place search, proxied.
 //
 // The obvious thing is to call Google Places straight from the app with an
-// EXPO_PUBLIC_ key — but a key in a mobile bundle can be extracted, and
+// EXPO_PUBLIC_ key, but a key in a mobile bundle can be extracted, and
 // Google's web-service APIs can only be restricted by IP, not by app. An
 // extracted key is therefore an open tab on your billing account. Keeping it
 // here means it never ships to a device, which is the same rule the Claude and
@@ -28,7 +28,7 @@ type PlaceResult = {
   lng: number | null;
 };
 
-/** Google Places (New) — used only when a key is configured. */
+/** Google Places (New), used only when a key is configured. */
 async function searchGoogle(q: string, key: string): Promise<PlaceResult[]> {
   const res = await fetch('https://places.googleapis.com/v1/places:searchText', {
     method: 'POST',
@@ -69,7 +69,7 @@ async function searchPhoton(q: string): Promise<PlaceResult[]> {
   const json = await res.json();
   return (json.features ?? []).map((f: any) => {
     const p = f.properties ?? {};
-    // Photon returns address parts, not a formatted line — assemble one.
+    // Photon returns address parts, not a formatted line, assemble one.
     const address = [
       [p.housenumber, p.street].filter(Boolean).join(' '),
       p.city ?? p.district,
@@ -115,13 +115,13 @@ Deno.serve(async (req) => {
 
     // Google needs a billing card even for its free allowance. Photon is
     // OpenStreetMap-backed, needs no key and no card, and is built for
-    // type-ahead — so search works out of the box and only gets better (and
+    // type-ahead, so search works out of the box and only gets better (and
     // more accurate on small businesses) if a Google key is ever added.
     const places = key ? await searchGoogle(q, key) : await searchPhoton(q);
     return Response.json({ configured: true, places }, { headers: CORS });
   } catch (err) {
     console.error(err);
-    // A search failure must never block the flow — the caller falls back to
+    // A search failure must never block the flow, the caller falls back to
     // typing a place name by hand.
     return Response.json({ configured: true, places: [] }, { headers: CORS });
   }

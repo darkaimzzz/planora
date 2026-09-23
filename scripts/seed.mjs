@@ -67,7 +67,7 @@ async function main() {
   const me = await testUser(`demo@planora.test`, 'Demo', '#8b5cf6');
   const sam = await testUser(`sam@planora.test`, 'Sam', '#14b8a6');
 
-  // 1. Collecting availability — nobody has marked anything yet.
+  // 1. Collecting availability, nobody has marked anything yet.
   await newPlan(me, sam, 'Badminton on Thursday', 'hangout');
 
   // 2. Time poll open, one of two has voted.
@@ -107,9 +107,9 @@ async function main() {
 
   console.log(`
 Seeded three plans, one per stage:
-  · Badminton on Thursday  — collecting availability
-  · Weekend trip           — time poll open (1/2 voted)
-  · Sunday roast           — time settled, venue vote open (1/2 voted)
+  · Badminton on Thursday , collecting availability
+  · Weekend trip          , time poll open (1/2 voted)
+  · Sunday roast          , time settled, venue vote open (1/2 voted)
 
 Sign in with either account (same password):
   demo@planora.test  /  ${TEST_PASSWORD}

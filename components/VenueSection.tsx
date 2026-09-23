@@ -141,7 +141,7 @@ export function VenueSection({
       {/* Put to a vote, not yet resolved */}
       {!plan.location_name && venueVoteOpen && !picking && (
         <View gap={8}>
-          <Muted>The places are up for a vote — head to the Voting tab.</Muted>
+          <Muted>The places are up for a vote, head to the Voting tab.</Muted>
           {isCreator && (
             <Tappable onPress={() => setPicking(true)}>
               <Text color={brand.primary} fontWeight="600" fontSize={14}>

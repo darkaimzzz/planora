@@ -30,7 +30,7 @@ export default function Availability() {
   const selectedRef = useRef(selected);
   selectedRef.current = selected;
   const paintingRef = useRef(true);
-  // Where the current drag began, and the selection as it was at that moment —
+  // Where the current drag began, and the selection as it was at that moment,
   // together they let every move recompute the result from scratch.
   const anchorRef = useRef<{ col: number; row: number } | null>(null);
   const baseRef = useRef<Set<Cell>>(new Set());
@@ -41,7 +41,7 @@ export default function Availability() {
   /**
    * Where the grid currently sits on screen. It moves whenever either scroll
    * view scrolls, so this is re-run on layout, on scroll, and at the start of
-   * each drag — a stale origin would paint the wrong cells.
+   * each drag, a stale origin would paint the wrong cells.
    */
   const remeasure = useCallback(() => {
     gridRef.current?.measureInWindow?.((x, y) => {
@@ -76,7 +76,7 @@ export default function Availability() {
    * Deliberately a rectangle rather than "whichever cell the pointer is over":
    * move events are sparse, so a quick drag skips cells entirely. Recomputing
    * from the anchor against a snapshot of the selection makes each move
-   * idempotent, so the result depends on where the finger is — not on how many
+   * idempotent, so the result depends on where the finger is, not on how many
    * events happened to fire on the way.
    */
   function paintTo(pos: { col: number; row: number }) {

@@ -30,7 +30,7 @@ export class ErrorBoundary extends Component<Props, State> {
   /**
    * A boundary only catches errors thrown while rendering. Anything thrown in
    * an event handler, a timer or an await lands on React Native's global
-   * handler, which in a release build simply ends the process — no message,
+   * handler, which in a release build simply ends the process, no message,
    * no screen, nothing to report. Route those here too.
    */
   componentDidMount() {
@@ -42,7 +42,7 @@ export class ErrorBoundary extends Component<Props, State> {
     const previous = utils.getGlobalHandler?.();
     utils.setGlobalHandler((error, fatal) => {
       this.setState({ error });
-      // Still log it, but do not let the default handler tear the app down —
+      // Still log it, but do not let the default handler tear the app down,
       // the screen below is more useful than a disappearing app.
       console.error('uncaught error', fatal ? '(fatal)' : '', error);
       if (!fatal) previous?.(error, fatal);

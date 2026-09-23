@@ -3,7 +3,7 @@
 -- an anonymous wall.
 --
 -- plan_preview returns only a title, type and headcount, and only for an exact
--- invite token — an unguessable UUID that the holder of the link is already
+-- invite token, an unguessable UUID that the holder of the link is already
 -- meant to have. That is the same thing join_plan_by_token would reveal a
 -- moment later, so granting it to anonymous visitors exposes nothing new.
 -- join_plan_by_token deliberately stays authenticated-only: reading who you're

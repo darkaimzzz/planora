@@ -21,7 +21,7 @@ const AppearanceContext = createContext<AppearanceState | null>(null);
  * Owns the light/dark decision and keeps `brand` pointing at the right palette.
  *
  * This provider sits at the root, so when the choice changes the whole tree
- * re-renders and every `brand.x` read picks up the new value — no subscription
+ * re-renders and every `brand.x` read picks up the new value, no subscription
  * needed, and nothing else may mutate the palette.
  */
 export function AppearanceProvider({ children }: { children: ReactNode }) {
@@ -43,7 +43,7 @@ export function AppearanceProvider({ children }: { children: ReactNode }) {
 
   // Swapped during render, not in an effect, so the first paint after a change
   // already uses the new colours rather than flashing the old ones. It is a
-  // plain object mutation — no state update, so it cannot loop.
+  // plain object mutation, no state update, so it cannot loop.
   setPalette(scheme === 'dark' ? darkPalette : lightPalette);
 
   const value = useMemo<AppearanceState>(

@@ -1,4 +1,4 @@
-# Planora — handoff for review
+# Planora: handoff for review
 
 Written for a reviewer coming to this cold, with no history of how it was
 built. Read this, then `CLAUDE.md` (the running build log, newest entries at
@@ -23,13 +23,13 @@ Functions. There is no custom server.
 | Layer | Where | Notes |
 |---|---|---|
 | Screens | `app/` | Expo Router. `app/(tabs)` = Home/Plans/Profile; `app/plan/[id]` = one plan |
-| Plan sections | `components/plan/*Panel.tsx` | Roadmap / Voting / Chat / Details — **not** routes, see below |
+| Plan sections | `components/plan/*Panel.tsx` | Roadmap / Voting / Chat / Details, **not** routes, see below |
 | UI kit | `components/ui.tsx` | Every shared primitive. `PushButton` is the signature control |
-| Pure logic | `lib/plans.ts`, `availability.ts`, `roadmap.ts`, `calendar.ts` | **No Supabase imports** — `tests/run.ts` loads these directly in node |
+| Pure logic | `lib/plans.ts`, `availability.ts`, `roadmap.ts`, `calendar.ts` | **No Supabase imports**, `tests/run.ts` loads these directly in node |
 | Queries | `lib/planQueries.ts`, `usePlanData.ts` | Everything that touches the network |
 | Schema | `supabase/migrations/*.sql` | Applied in order. 0001 is the bulk |
 | Server logic | `supabase/functions/` | `advance-plan` (the state machine), `places-search` (proxy) |
-| Landing page | `landing/` | Static invite handler. Not the app — see below |
+| Landing page | `landing/` | Static invite handler. Not the app, see below |
 
 ### The one non-obvious rule
 
@@ -63,7 +63,7 @@ npm run check    # typecheck + assertions
 Seeded accounts: `demo@planora.test` / `sam@planora.test`, both
 `Password123!`. `seed` and `reset` only ever touch `@planora.test` accounts.
 
-`npm run dev:web` exists **only as a test harness** — there is no web product.
+`npm run dev:web` exists **only as a test harness**, there is no web product.
 It was the only way to click through the app from a Windows machine with no
 simulator.
 
@@ -71,7 +71,7 @@ simulator.
 
 Everything below was run against the live Supabase project, not mocked:
 
-- **`npm run audit` — 42 assertions**, all from the attacker's side, and the
+- **`npm run audit`, 42 assertions**, all from the attacker's side, and the
   thing to run first. It covers every defect found in the 2026-09-22 hardening
   pass plus the full happy path, and it is the regression net: if a policy
   loosens, it fails. Fixtures are isolated `@planora.test` accounts, deleted
@@ -83,10 +83,10 @@ Everything below was run against the live Supabase project, not mocked:
   confirm → chat message → calendar.
 - `tests/run.ts` covers the pure logic and runs under two timezones.
 
-## What is NOT verified — start here
+## What is NOT verified: start here
 
 1. **Nothing has run on a real device.** No iOS or Android build exists. The
-   invite deep link between two phones — the PRD's own acceptance bar — has
+   invite deep link between two phones, the PRD's own acceptance bar, has
    never been tested.
 2. **Google Sign-In**'s final hop. Configuration is verified (Google serves its
    real consent page, correct client id and callback, no `redirect_uri_mismatch`),
@@ -134,7 +134,7 @@ two facts, and a fourth is waiting for whoever forgets them:
   means no existing install can ever be upgraded in place.
 - **The palette is a mutable module object** (`lib/theme.ts`). ~200 call sites
   read `brand.x` directly and `AppearanceProvider` swaps its contents for dark
-  mode. This works only because nothing captures a colour at module load —
+  mode. This works only because nothing captures a colour at module load,
   **no `StyleSheet.create` colours, no `styled()` colour defaults.** Adding one
   will silently break dark mode on that component.
 - **Slot granularity is one hour, unmerged.** A group free all evening is
@@ -144,7 +144,7 @@ two facts, and a fourth is waiting for whoever forgets them:
   tier, which also pauses after ~7 days idle).
 - **Availability is fixed** to the next 7 days, 08:00–23:00.
 
-## Traps already hit — don't re-derive these
+## Traps already hit: don't re-derive these
 
 Each of these cost real time and is easy to reintroduce:
 
@@ -156,11 +156,11 @@ Each of these cost real time and is easy to reintroduce:
   in IST, and `toISOString()` in `gridDays` made the grid start a day early.
 - Edge Functions send **no CORS headers** by default. Invisible on native,
   fatal on web.
-- A `SUPABASE_*` prefixed secret cannot be set — the prefix is reserved.
+- A `SUPABASE_*` prefixed secret cannot be set, the prefix is reserved.
 - Nested `Tabs` inside a dynamic route breaks navigation on web. That's why the
   plan screen is one screen with a segmented control.
 - Entrance animations mean content is invisible until they run. In a hidden
-  browser tab rAF is throttled and the UI appears blank — that's the harness,
+  browser tab rAF is throttled and the UI appears blank, that's the harness,
   not a bug, but it makes the Chrome extension unusable unless its window is
   in the foreground.
 
@@ -172,11 +172,11 @@ npm run deploy:function places-search
 ```
 
 Migrations: `npx supabase db push` if the CLI is linked, otherwise paste each
-file in order into the dashboard SQL editor. The CLI is **not** linked here —
+file in order into the dashboard SQL editor. The CLI is **not** linked here,
 the project's direct DB host is IPv6-only and this machine has no IPv6 route,
 so everything was done through the Management API.
 
-Shipping a version of the app — there is no app store, so this is the whole
+Shipping a version of the app, there is no app store, so this is the whole
 release process:
 
 ```bash
@@ -190,7 +190,7 @@ fingerprint it reads out of the APK's own v1 signature block (there is no
 keytool on this machine). The APK is **gitignored** and uploaded from disk at
 deploy time, so a ~60 MB binary never enters the repository.
 `landing/release.json` is the single source of truth for the version, size,
-date and checksum shown on the site — and for the in-app update banner.
+date and checksum shown on the site, and for the in-app update banner.
 
 ## Secrets
 
@@ -199,7 +199,7 @@ the build conversation **should be treated as compromised and rotated**: the
 Supabase secret key, and the first personal access token.
 
 `GOOGLE_MAPS_API_KEY` and `ANTHROPIC_API_KEY` are **Edge Function secrets**,
-never app variables — an `EXPO_PUBLIC_` key ships inside the bundle where it
+never app variables, an `EXPO_PUBLIC_` key ships inside the bundle where it
 can be extracted, and Google's web-service APIs can't be restricted per app.
 
 ## Distribution
@@ -215,7 +215,7 @@ What that trades away, and how each is handled:
 | Auto-update | `lib/updates.ts` compares the app's version against `release.json` and shows a banner on Home |
 | Store-signed trust | HTTPS from our own domain, plus a published SHA-256 the visitor can check |
 | Install instructions | The site explains the "unknown sources" prompt everyone hits, step by step |
-| Store review | Nothing. This is the real cost — nobody else is checking the build |
+| Store review | Nothing. This is the real cost, nobody else is checking the build |
 
 iOS remains unbuilt and can't be sideloaded, so an iPhone release still means
 App Store review, which additionally requires **Sign in with Apple**
@@ -231,5 +231,5 @@ If you have limited review time, spend it here, in order:
 2. **`advance-plan`'s re-entrancy.** It is called concurrently from several
    clients and from cron. Two clients voting at once, or a cron sweep landing
    mid-vote, is the scenario most likely to hide a bug.
-3. **The mutable-palette trick** in `lib/theme.ts` — unusual, and it fails
+3. **The mutable-palette trick** in `lib/theme.ts`, unusual, and it fails
    silently and partially rather than loudly.

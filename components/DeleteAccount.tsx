@@ -9,7 +9,7 @@ import { Card, Heading, Muted, PushButton, Tappable } from '@/components/ui';
  * Permanent account deletion, required by both app stores.
  *
  * Two steps on purpose, and the second one spells out what disappears for
- * other people — deleting a creator deletes their plans for everyone in them,
+ * other people, deleting a creator deletes their plans for everyone in them,
  * which is not something to discover afterwards. No native Alert: it behaves
  * differently across platforms and can't be styled or tested.
  */

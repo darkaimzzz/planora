@@ -54,7 +54,7 @@ function AuthGate() {
 }
 
 /**
- * Split out so it sits *inside* AppearanceProvider — it needs the resolved
+ * Split out so it sits *inside* AppearanceProvider, it needs the resolved
  * scheme to pick the Tamagui theme and the status-bar style.
  */
 function Themed() {

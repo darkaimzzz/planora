@@ -67,5 +67,5 @@ for (const slug of slugs) {
     console.error(`${slug} failed (${res.status}):`, body);
     process.exit(1);
   }
-  console.log(`Deployed ${slug} v${body.version} — ${body.status}`);
+  console.log(`Deployed ${slug} v${body.version}, ${body.status}`);
 }

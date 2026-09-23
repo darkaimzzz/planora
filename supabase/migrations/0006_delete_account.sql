@@ -2,11 +2,11 @@
 -- and Google Play's data deletion policy.
 --
 -- What goes, and why:
---   · the auth user — everything else cascades from it
---   · profile, attendance, availability, votes — all FK'd with ON DELETE CASCADE
---   · plans they created — cascade from profiles, which also takes that plan's
+--   · the auth user, everything else cascades from it
+--   · profile, attendance, availability, votes, all FK'd with ON DELETE CASCADE
+--   · plans they created, cascade from profiles, which also takes that plan's
 --     polls, options, votes and messages with it
---   · their chat messages — deleted explicitly, see below
+--   · their chat messages, deleted explicitly, see below
 --
 -- messages.user_id is ON DELETE SET NULL, and a null author is how the app
 -- marks the AI confirmation message. Left alone, a deleted person's chat

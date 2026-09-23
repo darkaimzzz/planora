@@ -7,7 +7,7 @@
  * version against it.
  *
  * Deliberately not an auto-updater. It reads one static file and, at most,
- * shows a banner — no background service, no install permissions, nothing
+ * shows a banner, no background service, no install permissions, nothing
  * that runs when the app is closed.
  *
  * The caller passes its own version rather than this module reading

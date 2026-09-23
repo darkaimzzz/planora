@@ -76,7 +76,7 @@ export default function Plans() {
             <EmptyState
               emoji="🌱"
               title="Nothing planned"
-              body="Create a plan and share the link — everyone votes, nobody argues."
+              body="Create a plan and share the link, everyone votes, nobody argues."
               action={
                 <View marginTop={8}>
                   <PushButton label="Create a plan" full={false} onPress={() => router.push('/new-plan')} />

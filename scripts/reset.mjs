@@ -3,7 +3,7 @@
 //
 //   npm run reset
 //
-// Only accounts on the test domain are touched — a real account with a real
+// Only accounts on the test domain are touched, a real account with a real
 // email address is never matched.
 import { pathToFileURL } from 'node:url';
 
@@ -27,7 +27,7 @@ export async function reset({ quiet = false } = {}) {
     console.log(
       testUsers.length
         ? `Removed ${testUsers.length} test account(s) and everything they owned.`
-        : 'Nothing to remove — no test accounts found.',
+        : 'Nothing to remove, no test accounts found.',
     );
   }
   return testUsers.length;

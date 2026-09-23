@@ -107,7 +107,7 @@ export default function ProfileScreen() {
               </View>
               <Muted>
                 {choice === 'system'
-                  ? `Following your device — currently ${scheme}.`
+                  ? `Following your device, currently ${scheme}.`
                   : `Always ${choice}.`}
               </Muted>
             </Card>

@@ -6,7 +6,7 @@ import * as Linking from 'expo-linking';
  * Where invite links point.
  *
  * `Linking.createURL` gives `planora://join/…` on a device and a localhost URL
- * in development — neither of which is any use pasted into a chat. Set
+ * in development, neither of which is any use pasted into a chat. Set
  * EXPO_PUBLIC_APP_URL to the deployed web address and invites become real
  * https links that open in a browser for anyone, and deep-link into the app
  * for anyone who has it.
@@ -25,7 +25,7 @@ export type ShareResult = 'shared' | 'copied' | 'failed';
 /**
  * Hand the invite to the OS share sheet, falling back to the clipboard.
  *
- * The share sheet doesn't exist on desktop web — React Native Web forwards to
+ * The share sheet doesn't exist on desktop web, React Native Web forwards to
  * `navigator.share`, which most desktop browsers don't implement, and the
  * promise simply rejects. Copying is the dependable path, so a failed share
  * becomes a copy rather than nothing happening at all.

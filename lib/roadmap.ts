@@ -1,4 +1,4 @@
-// Pure roadmap derivation (PRD §6a). No Supabase import — tests load this directly.
+// Pure roadmap derivation (PRD §6a). No Supabase import, tests load this directly.
 
 export const STAGES = [
   'Created',

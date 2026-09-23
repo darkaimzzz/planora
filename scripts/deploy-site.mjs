@@ -3,8 +3,8 @@
 //
 // Why this exists: the APK is uploaded from disk at deploy time and is not in
 // the repository. The Vercel project is linked to GitHub, so for a while every
-// `git push` also triggered a deployment — built from the repo, therefore with
-// no APK — which silently replaced a working production deployment and turned
+// `git push` also triggered a deployment, built from the repo, therefore with
+// no APK, which silently replaced a working production deployment and turned
 // the download button into a 404. It was live and verified at 21:53 and gone
 // by 21:54, taken out by a push of the very commit that shipped it.
 //
@@ -95,5 +95,5 @@ if (res.ok) {
   const eocd = served.lastIndexOf(Buffer.from([0x50, 0x4b, 0x05, 0x06]));
   check('complete zip (not truncated)', eocd > 0);
 
-console.log(failures ? `\n${failures} check(s) failed — the site is NOT serving the release.` : '\nall checks passed.');
+console.log(failures ? `\n${failures} check(s) failed, the site is NOT serving the release.` : '\nall checks passed.');
 process.exit(failures ? 1 : 0);

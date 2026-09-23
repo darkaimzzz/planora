@@ -1,6 +1,6 @@
 -- Anyone who signed up before the handle_new_user trigger existed has an
 -- auth.users row but no profile, and plans.created_by references profiles(id)
--- — so creating a plan fails on the foreign key with a confusing error.
+--, so creating a plan fails on the foreign key with a confusing error.
 --
 -- Backfill them, and make the app's own recovery path cheap: profile_self()
 -- is idempotent, so the client can call it whenever it finds itself signed in

@@ -19,7 +19,7 @@ alter table poll_options
  * Creator-only: replace the venue options for a plan and open the poll.
  *
  * SECURITY DEFINER because clients deliberately have no insert policy on polls
- * or poll_options — this is the one sanctioned way for a person to create one.
+ * or poll_options, this is the one sanctioned way for a person to create one.
  */
 create function propose_venues(p_plan_id uuid, p_places jsonb)
 returns uuid
